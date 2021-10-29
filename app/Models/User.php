@@ -2,7 +2,7 @@
 
 namespace OliviaApp\Models;
 
-use elzobrito\Model\Model;
+use OliviaDatabaseLibrary\Model\Model;
 
 class User extends Model
 {

@@ -27,7 +27,6 @@ class ComposerStaticInit54aa441173212cda65bdbcd1c8f2dffa
         ),
         'P' => 
         array (
-            'Publico\\' => 8,
             'Phlib\\XssSanitizer\\' => 19,
             'PHPMailer\\PHPMailer\\' => 20,
         ),
@@ -38,20 +37,15 @@ class ComposerStaticInit54aa441173212cda65bdbcd1c8f2dffa
             'OliviaPagination\\' => 17,
             'OliviaLib\\' => 10,
             'OliviaDownload\\' => 15,
+            'OliviaDatabasePublico\\' => 22,
+            'OliviaDatabaseModel\\' => 20,
             'OliviaDatabaseLibrary\\' => 22,
+            'OliviaDatabaseConfig\\' => 21,
             'OliviaApp\\' => 10,
-        ),
-        'M' => 
-        array (
-            'Model\\' => 6,
         ),
         'F' => 
         array (
             'Fpdf\\' => 5,
-        ),
-        'C' => 
-        array (
-            'Config\\' => 7,
         ),
         'B' => 
         array (
@@ -79,10 +73,6 @@ class ComposerStaticInit54aa441173212cda65bdbcd1c8f2dffa
         'Ramsey\\Collection\\' => 
         array (
             0 => __DIR__ . '/..' . '/ramsey/collection/src',
-        ),
-        'Publico\\' => 
-        array (
-            0 => __DIR__ . '/..' . '/elzobrito/olivia-databaselibrary/public_html',
         ),
         'Phlib\\XssSanitizer\\' => 
         array (
@@ -112,25 +102,29 @@ class ComposerStaticInit54aa441173212cda65bdbcd1c8f2dffa
         array (
             0 => __DIR__ . '/..' . '/elzobrito/olivia-force-download/src',
         ),
+        'OliviaDatabasePublico\\' => 
+        array (
+            0 => __DIR__ . '/..' . '/elzobrito/olivia-databaselibrary/public_html',
+        ),
+        'OliviaDatabaseModel\\' => 
+        array (
+            0 => __DIR__ . '/..' . '/elzobrito/olivia-databaselibrary/model',
+        ),
         'OliviaDatabaseLibrary\\' => 
         array (
             0 => __DIR__ . '/..' . '/elzobrito/olivia-databaselibrary/src',
+        ),
+        'OliviaDatabaseConfig\\' => 
+        array (
+            0 => __DIR__ . '/..' . '/elzobrito/olivia-databaselibrary/config',
         ),
         'OliviaApp\\' => 
         array (
             0 => __DIR__ . '/../..' . '/app',
         ),
-        'Model\\' => 
-        array (
-            0 => __DIR__ . '/..' . '/elzobrito/olivia-databaselibrary/model',
-        ),
         'Fpdf\\' => 
         array (
             0 => __DIR__ . '/..' . '/fpdf/fpdf/src/Fpdf',
-        ),
-        'Config\\' => 
-        array (
-            0 => __DIR__ . '/..' . '/elzobrito/olivia-databaselibrary/config',
         ),
         'Brick\\Math\\' => 
         array (

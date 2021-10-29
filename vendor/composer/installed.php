@@ -5,8 +5,8 @@
         'type' => 'library',
         'install_path' => __DIR__ . '/../../',
         'aliases' => array(),
-        'reference' => 'f0c00ec3b4b3572108529b2af0c4855cebeb63e3',
-        'name' => 'elzobrito/olivia',
+        'reference' => '5f8bb32af54aa772d6a924a34d168d8d2b2d7e71',
+        'name' => 'elzobrito/olivia-app',
         'dev' => true,
     ),
     'versions' => array(
@@ -19,22 +19,22 @@
             'reference' => 'ca57d18f028f84f777b2168cd1911b0dee2343ae',
             'dev_requirement' => false,
         ),
-        'elzobrito/olivia' => array(
+        'elzobrito/olivia-app' => array(
             'pretty_version' => 'dev-master',
             'version' => 'dev-master',
             'type' => 'library',
             'install_path' => __DIR__ . '/../../',
             'aliases' => array(),
-            'reference' => 'f0c00ec3b4b3572108529b2af0c4855cebeb63e3',
+            'reference' => '5f8bb32af54aa772d6a924a34d168d8d2b2d7e71',
             'dev_requirement' => false,
         ),
         'elzobrito/olivia-databaselibrary' => array(
-            'pretty_version' => '1.0',
-            'version' => '1.0.0.0',
+            'pretty_version' => '1.1',
+            'version' => '1.1.0.0',
             'type' => 'library',
             'install_path' => __DIR__ . '/../elzobrito/olivia-databaselibrary',
             'aliases' => array(),
-            'reference' => 'c8ffd468cb2fedcf54be7e0bb33a7daa41c23e72',
+            'reference' => '3a9eed03349d68e664c1d41fe95269471683deeb',
             'dev_requirement' => false,
         ),
         'elzobrito/olivia-force-download' => array(

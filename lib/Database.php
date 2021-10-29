@@ -2,7 +2,7 @@
 
 namespace OliviaLib;
 
-use elzobrito\ADatabase;
+use OliviaDatabaseLibrary\ADatabase;
 
 class Database extends ADatabase
 {
@@ -19,6 +19,7 @@ class Database extends ADatabase
                     'database' => '',
                     'user' => '',
                     'password' => '',
+                    'driver' => ''
                 ];
                 break;
         }

@@ -1,5 +1,6 @@
 <?php
-namespace OliviaDatabasePublico;
+
+namespace OliviaApp\Models;
 
 use OliviaDatabaseModel\Model;
 
@@ -7,11 +8,10 @@ class Configuracoes extends Model
 {
     protected $table = 'configuracoes';
     protected $drive = 'mysql';
-
+    
     protected $fillable = [
         'parametro',
         'valor',
-        'status'
     ];
 
     protected $atributos = [
@@ -19,6 +19,6 @@ class Configuracoes extends Model
         'parametro',
         'valor',
         'status',
-        'created_at'
+        'created_at',
     ];
 }

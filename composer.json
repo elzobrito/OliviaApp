@@ -19,7 +19,7 @@
         "elzobrito/olivia-force-download": "^1.0",
         "elzobrito/olivia-pagination": "^1.0",
         "elzobrito/olivia-pdf": "^1.0",
-        "elzobrito/olivia-databaselibrary": "^1.0",
+        "elzobrito/olivia-databaselibrary": "^1.1",
         "ramsey/uuid": "^4.0",
         "phlib/xss-sanitizer": "^1.1",
         "phpmailer/phpmailer": "^6.1",

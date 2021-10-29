@@ -65,31 +65,31 @@
         },
         {
             "name": "elzobrito/olivia-databaselibrary",
-            "version": "1.0",
-            "version_normalized": "1.0.0.0",
+            "version": "1.1",
+            "version_normalized": "1.1.0.0",
             "source": {
                 "type": "git",
                 "url": "https://github.com/elzobrito/Oliviadatabaselibrary.git",
-                "reference": "c8ffd468cb2fedcf54be7e0bb33a7daa41c23e72"
+                "reference": "3a9eed03349d68e664c1d41fe95269471683deeb"
             },
             "dist": {
                 "type": "zip",
-                "url": "https://api.github.com/repos/elzobrito/Oliviadatabaselibrary/zipball/c8ffd468cb2fedcf54be7e0bb33a7daa41c23e72",
-                "reference": "c8ffd468cb2fedcf54be7e0bb33a7daa41c23e72",
+                "url": "https://api.github.com/repos/elzobrito/Oliviadatabaselibrary/zipball/3a9eed03349d68e664c1d41fe95269471683deeb",
+                "reference": "3a9eed03349d68e664c1d41fe95269471683deeb",
                 "shasum": ""
             },
             "require": {
                 "php": "^7.1"
             },
-            "time": "2021-10-29T15:27:32+00:00",
+            "time": "2021-10-29T17:58:44+00:00",
             "type": "library",
             "installation-source": "dist",
             "autoload": {
                 "psr-4": {
                     "OliviaDatabaseLibrary\\": "src",
-                    "Model\\": "model",
-                    "Config\\": "config",
-                    "Publico\\": "public_html"
+                    "OliviaDatabaseModel\\": "model",
+                    "OliviaDatabaseConfig\\": "config",
+                    "OliviaDatabasePublico\\": "public_html"
                 }
             },
             "notification-url": "https://packagist.org/downloads/",
@@ -104,7 +104,7 @@
             ],
             "support": {
                 "issues": "https://github.com/elzobrito/Oliviadatabaselibrary/issues",
-                "source": "https://github.com/elzobrito/Oliviadatabaselibrary/tree/1.0"
+                "source": "https://github.com/elzobrito/Oliviadatabaselibrary/tree/1.1"
             },
             "install-path": "../elzobrito/olivia-databaselibrary"
         },

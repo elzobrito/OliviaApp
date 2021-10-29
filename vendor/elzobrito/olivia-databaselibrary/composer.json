@@ -1,5 +1,5 @@
 {
-  "name": "elzobrito/databaselibrary",
+  "name": "elzobrito/olivia-databaselibrary",
   "license": "MIT",
   "authors": [
     {
@@ -10,9 +10,9 @@
   "autoload": {
     "psr-4": {
       "OliviaDatabaseLibrary\\": "src",
-      "Model\\": "model",
-      "Config\\": "config",
-      "Publico\\": "public_html"
+      "OliviaDatabaseModel\\": "model",
+      "OliviaDatabaseConfig\\": "config",
+      "OliviaDatabasePublico\\": "public_html"
     }
   },
   "require": {
