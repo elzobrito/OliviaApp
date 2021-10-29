@@ -1,0 +1,29 @@
+{
+    "name": "elzobrito/olivia",
+    "description": "FrameWork Olivia",
+    "authors": [
+        {
+            "name": "elzobrito",
+            "email": "elzo.filho@etec.sp.gov.br"
+        }
+    ],
+    "autoload": {
+        "psr-4": {
+            "OliviaApp\\":"app/",
+            "OliviaLib\\":"lib/",
+            "OliviaPublico\\":"publico/"
+        }
+    },
+    "require": {
+        "php": "^7.2.5|^8.0",
+        "elzobrito/olivia-force-download": "^1.0",
+        "elzobrito/olivia-pagination": "^1.0",
+        "elzobrito/olivia-pdf": "^1.0",
+        "elzobrito/olivia-databaselibrary": "^1.0",
+        "ramsey/uuid": "^4.0",
+        "phlib/xss-sanitizer": "^1.1",
+        "phpmailer/phpmailer": "^6.1",
+        "fpdf/fpdf": "^1.82",
+        "ext-json": "*"
+    }
+}
