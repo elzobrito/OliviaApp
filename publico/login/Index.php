@@ -22,7 +22,7 @@ class Index extends ViewModelLogin
             <div class="card">
                 <div class="card-body login-card-body">
                     <p class="login-box-msg">Digite suas credenciais</p>
-                    <form action="logar-usuario" method="post">
+                    <form action="<?=$this->parametros['pre_url'].'-cadastrar-produto'?>" method="post">
                         <?= $this->csrf_field() ?>
                         <div class="input-group mb-3">
                             <input type="number" class="form-control" placeholder="00000000000" name="cpf" required>

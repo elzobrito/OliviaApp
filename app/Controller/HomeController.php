@@ -8,23 +8,29 @@ use OliviaPublico\Login\Index;
 
 class HomeController extends CommandController
 {
+    private function config_controller()
+    {
+        $parametros['nivel'] = '..';
+        $parametros['pre_url'] = 'pasta';
+        return $parametros;
+    }
+
 
     public function index()
     {
-        echo "<h1>It's Folks</h1>";
-        // $parametros['nivel'] = '..';
-        // new Index($parametros);
+        $parametros = $this->config_controller();
+        new Index($parametros);
     }
 
     public function login()
     {
-        $parametros['nivel'] = '..';
-        new Index($parametros);
+        // $parametros['nivel'] = '..';
+        // new Index($parametros);
     }
 
     public function error404()
     {
-        $parametros['nivel'] = '..';
+        $parametros = $this->config_controller();
         new E404($parametros);
     }
 }
