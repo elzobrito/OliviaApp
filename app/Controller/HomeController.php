@@ -13,8 +13,8 @@ class HomeController extends CommandController
 
     public function index()
     {
-        $c = new Configuracoes();
-        print_r($c->all());
+        // $c = new Configuracoes();
+        // print_r($c->all());
         //echo "<h1>It's Folks</h1>";
         // $parametros['nivel'] = '..';
         // new Index($parametros);
