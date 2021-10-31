@@ -2,18 +2,18 @@
 
 namespace OliviaPublico\Login;
 
-class ResetPassword extends ViewBlankPage
+use OliviaPublico\View\ViewModelLogin;
+
+class ResetPassword extends ViewModelLogin
 {
     public function config()
     {
-        $this->setTitle('Regionalização');
         $this->setNivel($this->parametros['nivel']);
     }
 
     public function content()
     {
 ?>
-        <!-- Section -->
         <section class="d-flex align-items-center my-5 mt-lg-6 mb-lg-5">
             <div class="container">
                 <div class="row justify-content-center form-bg-image" data-background-lg="../../assets/img/illustrations/signin.svg">
@@ -22,24 +22,8 @@ class ResetPassword extends ViewBlankPage
                             <div class="text-center text-md-center mb-4 mt-md-0">
                                 <h1 class="mb-0 h3">Digite suas credenciais</h1>
                             </div>
-                            <form action="<?= $this->route('salvar-senha-recuperada', []) ?>" method="post" class="mt-4">
+                            <form action="<?= $this->parametros['pre_url'] .   '-salvar-senha' ?>" method="post" class="mt-4">
                                 <?= $this->csrf_field(); ?>
-                                <input type="hidden" name="id" value="<?= $this->encryptIt($this->parametros['usuario'][0]->id) ?>">
-                                <!-- Form -->
-
-                                <?php
-                                if (!$this->parametros['usuario'][0]->cpf) {
-                                ?>
-                                    <div class="form-group mb-4">
-                                        <label for="email">Seu CPF</label>
-                                        <div class="input-group">
-                                            <span class="input-group-text" id="basic-addon1"><span class="fas fa-id-card"></span></span>
-                                            <input type="number" class="form-control" placeholder="00000000000" id="cpf" name="cpf" autofocus required>
-                                        </div>
-                                    </div>
-                                <?php
-                                }
-                                ?>
                                 <div class="form-group mb-4">
                                     <label for="password">Senha</label>
                                     <div class="input-group">

@@ -2,7 +2,9 @@
 
 namespace OliviaApp\Middleware;
 
-class RequestPost
+use OliviaLib\CommandController;
+
+class RequestPost extends CommandController
 {
     public function index()
     {

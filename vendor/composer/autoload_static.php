@@ -33,6 +33,7 @@ class ComposerStaticInit54aa441173212cda65bdbcd1c8f2dffa
         'O' => 
         array (
             'Oliviapdf\\' => 10,
+            'OliviaUpload\\' => 13,
             'OliviaPublico\\' => 14,
             'OliviaPagination\\' => 17,
             'OliviaLib\\' => 10,
@@ -85,6 +86,10 @@ class ComposerStaticInit54aa441173212cda65bdbcd1c8f2dffa
         'Oliviapdf\\' => 
         array (
             0 => __DIR__ . '/..' . '/elzobrito/olivia-pdf/src',
+        ),
+        'OliviaUpload\\' => 
+        array (
+            0 => __DIR__ . '/..' . '/elzobrito/olivia-upload-file/src',
         ),
         'OliviaPublico\\' => 
         array (

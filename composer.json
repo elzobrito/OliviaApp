@@ -9,9 +9,9 @@
     ],
     "autoload": {
         "psr-4": {
-            "OliviaApp\\":"app/",
-            "OliviaLib\\":"lib/",
-            "OliviaPublico\\":"publico/"
+            "OliviaApp\\": "app/",
+            "OliviaLib\\": "lib/",
+            "OliviaPublico\\": "publico/"
         }
     },
     "require": {
@@ -19,6 +19,7 @@
         "elzobrito/olivia-force-download": "^1.0",
         "elzobrito/olivia-pagination": "^1.0",
         "elzobrito/olivia-pdf": "^1.0",
+        "elzobrito/olivia-upload-file": "^1.1",
         "elzobrito/olivia-databaselibrary": "^1.1",
         "ramsey/uuid": "^4.0",
         "phlib/xss-sanitizer": "^1.1",

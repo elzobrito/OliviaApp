@@ -13,26 +13,30 @@ class Route extends CommandController
 
         //GET
         $router->get('/', 'HomeController#index');
-        $router->get('/login{:param}', 'HomeController#login');
+        //        $router->get('/login{:param}', 'HomeController#login');
         $router->get('/error404', 'HomeController#error404');
 
         /**
-         * LOGIN 
+         * TEST ROUTE 
          */
-        $this->execute_action_login($router, null, 'AuthController', null);
+        $this->execute_action_test($router, null, 'HomeController', 'olivia');
 
         $router->execute($_SERVER);
+
         if ($_SESSION['e404'])
             header('Location: http://' . $_SERVER['HTTP_HOST'] . DIRECTORY_SEPARATOR . $_SESSION['BASENAME'] . DIRECTORY_SEPARATOR . 'error404');
     }
 
-
-    private function execute_action_login($router, $middleware, $controller, $name)
+    private function execute_action_test($router, $middleware, $controller, $name)
     {
-        $url_nome = '/dashboard/' . $name;
-        $url_value_get[] = $url_nome . '/' . $name . '-listar-comunicacoes-regional{:param}';
-        $url_value_post[] = $url_nome . '/' . $name . '-execute_action_login';
+        $url_nome = '/' . $name;
+        $url_value_get[] = $url_nome . '-esqueci-senha{:param}';
+        $url_value_get[] = $url_nome . '-login{:param}';
+        $url_value_post[] = $url_nome . '-upload-test';
+        $url_value_post[] = $url_nome . '-recuperar-senha';
+        $url_value_post[] = $url_nome . '-salvar-senha';
 
+        $this->execute_action_get($router, $middleware, $controller, $url_value_get);
         $this->execute_action_post($router, $middleware, $controller, $url_value_post);
     }
 
@@ -40,7 +44,7 @@ class Route extends CommandController
     {
         foreach ($url_value_get as $key => $url) {
             $url_explode = explode('/', $url);
-            $router->middleware($middleware)->get($url, $controller . '#' . substr(implode('_', explode('-', $url_explode[count($url_explode) - 1])), 0, -8));
+            $router->middleware($middleware)->get($url, $controller . '#' . str_replace('{:param}', '', implode('_', explode('-',  $url_explode[count($url_explode) - 1]))));
         }
     }
 
@@ -48,8 +52,7 @@ class Route extends CommandController
     {
         foreach ($url_value_post as $key => $url) {
             $url_explode = explode('/', $url);
-            $router->middleware($middleware)->post($url, $controller . '#' . implode('_', explode('-', $url_explode[count($url_explode) - 1])));
+            $router->middleware($middleware)->post($url, $controller . '#' . implode('_', explode('-',  $url_explode[count($url_explode) - 1])));
         }
     }
-    
 }

@@ -2,7 +2,7 @@
 
 namespace OliviaApp\Models;
 
-use OliviaDatabaseLibrary\Model\Model;
+use OliviaDatabaseModel\Model;
 
 class User extends Model
 {

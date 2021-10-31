@@ -9,8 +9,6 @@ use PHPMailer\PHPMailer\PHPMailer;
 class Email
 {
 
-    //put your code here
-
     private $email;
     private $mensagem;
     private $assunto;

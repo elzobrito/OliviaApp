@@ -2,18 +2,18 @@
 
 namespace OliviaPublico\Login;
 
-class LostPassword extends ViewBlankPage
+use OliviaPublico\View\ViewModelLogin;
+
+class LostPassword extends ViewModelLogin
 {
     public function config()
     {
-        $this->setTitle('Regionalização');
         $this->setNivel($this->parametros['nivel']);
     }
 
     public function content()
     {
 ?>
-        <!-- Section -->
         <section class="d-flex align-items-center my-5 mt-lg-6 mb-lg-5">
             <div class="container">
                 <div class="row justify-content-center form-bg-image" data-background-lg="../../assets/img/illustrations/signin.svg">
@@ -22,7 +22,7 @@ class LostPassword extends ViewBlankPage
                             <div class="text-center text-md-center mb-4 mt-md-0">
                                 <h1 class="mb-0 h3">Digite suas credenciais</h1>
                             </div>
-                            <form action="<?= $this->route('recuperar-senha', []) ?>" method="post" class="mt-4">
+                            <form action="<?= $this->parametros['pre_url'] .   '-recuperar-senha' ?>" method="post" class="mt-4">
                                 <?= $this->csrf_field(); ?>
                                 <!-- Form -->
                                 <div class="form-group mb-4">

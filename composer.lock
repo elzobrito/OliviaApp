@@ -4,7 +4,7 @@
         "Read more about it at https://getcomposer.org/doc/01-basic-usage.md#installing-dependencies",
         "This file is @generated automatically"
     ],
-    "content-hash": "c5b2d1b2a58b8a11e09c1b7751f9f9f0",
+    "content-hash": "39d67490469902b02faba8cd75392c0f",
     "packages": [
         {
             "name": "brick/math",
@@ -228,6 +228,47 @@
                 "source": "https://github.com/elzobrito/OliviaPdf/tree/1.0"
             },
             "time": "2021-10-29T03:49:04+00:00"
+        },
+        {
+            "name": "elzobrito/olivia-upload-file",
+            "version": "1.1",
+            "source": {
+                "type": "git",
+                "url": "https://github.com/elzobrito/OliviaUpload.git",
+                "reference": "18d9d892439a4b7d78156ff771efb30ed0f615b9"
+            },
+            "dist": {
+                "type": "zip",
+                "url": "https://api.github.com/repos/elzobrito/OliviaUpload/zipball/18d9d892439a4b7d78156ff771efb30ed0f615b9",
+                "reference": "18d9d892439a4b7d78156ff771efb30ed0f615b9",
+                "shasum": ""
+            },
+            "require": {
+                "php": "^7.2.5|^8.0",
+                "ramsey/uuid": "^4.0"
+            },
+            "type": "library",
+            "autoload": {
+                "psr-4": {
+                    "OliviaUpload\\": "src"
+                }
+            },
+            "notification-url": "https://packagist.org/downloads/",
+            "license": [
+                "MIT"
+            ],
+            "authors": [
+                {
+                    "name": "Elzo Brito dos Santos Filho",
+                    "email": "elzo.filho@etec.sp.gov.br"
+                }
+            ],
+            "description": "upload php",
+            "support": {
+                "issues": "https://github.com/elzobrito/OliviaUpload/issues",
+                "source": "https://github.com/elzobrito/OliviaUpload/tree/1.1"
+            },
+            "time": "2021-10-30T15:38:32+00:00"
         },
         {
             "name": "fpdf/fpdf",

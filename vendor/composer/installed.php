@@ -5,7 +5,7 @@
         'type' => 'library',
         'install_path' => __DIR__ . '/../../',
         'aliases' => array(),
-        'reference' => '5f8bb32af54aa772d6a924a34d168d8d2b2d7e71',
+        'reference' => 'd078b04cca5a167bb2e12edc81c17f7b375b7a9f',
         'name' => 'elzobrito/olivia-app',
         'dev' => true,
     ),
@@ -25,7 +25,7 @@
             'type' => 'library',
             'install_path' => __DIR__ . '/../../',
             'aliases' => array(),
-            'reference' => '5f8bb32af54aa772d6a924a34d168d8d2b2d7e71',
+            'reference' => 'd078b04cca5a167bb2e12edc81c17f7b375b7a9f',
             'dev_requirement' => false,
         ),
         'elzobrito/olivia-databaselibrary' => array(
@@ -62,6 +62,15 @@
             'install_path' => __DIR__ . '/../elzobrito/olivia-pdf',
             'aliases' => array(),
             'reference' => 'b08cc1f0b992b8712885dd775155390bd92d38f7',
+            'dev_requirement' => false,
+        ),
+        'elzobrito/olivia-upload-file' => array(
+            'pretty_version' => '1.1',
+            'version' => '1.1.0.0',
+            'type' => 'library',
+            'install_path' => __DIR__ . '/../elzobrito/olivia-upload-file',
+            'aliases' => array(),
+            'reference' => '18d9d892439a4b7d78156ff771efb30ed0f615b9',
             'dev_requirement' => false,
         ),
         'fpdf/fpdf' => array(

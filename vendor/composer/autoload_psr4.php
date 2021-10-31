@@ -14,6 +14,7 @@ return array(
     'Phlib\\XssSanitizer\\' => array($vendorDir . '/phlib/xss-sanitizer/src'),
     'PHPMailer\\PHPMailer\\' => array($vendorDir . '/phpmailer/phpmailer/src'),
     'Oliviapdf\\' => array($vendorDir . '/elzobrito/olivia-pdf/src'),
+    'OliviaUpload\\' => array($vendorDir . '/elzobrito/olivia-upload-file/src'),
     'OliviaPublico\\' => array($baseDir . '/publico'),
     'OliviaPagination\\' => array($vendorDir . '/elzobrito/olivia-pagination/src'),
     'OliviaLib\\' => array($baseDir . '/lib'),
