@@ -6,7 +6,6 @@ use OliviaLib\CommandController;
 
 class AuthController extends CommandController
 {
-
     public function logar_usuario()
     {
         print_r($_REQUEST);

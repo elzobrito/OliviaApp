@@ -238,11 +238,9 @@ class CommandController
     private function encrypt_decrypt($action, $string, $secret_key = null, $secret_iv = null)
     {
         $output = false;
-
         $encrypt_method = "AES-256-CBC";
         // hash
         $key = hash('sha256', $secret_key ?? $_SESSION['secret_key']);
-
         // iv - encrypt method AES-256-CBC expects 16 bytes - else you will get a warning
         $iv = substr(hash('sha256', $secret_iv ?? $_SESSION['secret_iv']), 0, 16);
 
