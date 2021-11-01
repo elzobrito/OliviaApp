@@ -4,7 +4,7 @@
         "Read more about it at https://getcomposer.org/doc/01-basic-usage.md#installing-dependencies",
         "This file is @generated automatically"
     ],
-    "content-hash": "39d67490469902b02faba8cd75392c0f",
+    "content-hash": "13884422fa5fd0746a687f5e83a3ba76",
     "packages": [
         {
             "name": "brick/math",
@@ -228,6 +228,46 @@
                 "source": "https://github.com/elzobrito/OliviaPdf/tree/1.0"
             },
             "time": "2021-10-29T03:49:04+00:00"
+        },
+        {
+            "name": "elzobrito/olivia-router",
+            "version": "1.0",
+            "source": {
+                "type": "git",
+                "url": "https://github.com/elzobrito/OliviaRoute.git",
+                "reference": "1de2197866da049c67c5f4bed4bdd55963d5a0e2"
+            },
+            "dist": {
+                "type": "zip",
+                "url": "https://api.github.com/repos/elzobrito/OliviaRoute/zipball/1de2197866da049c67c5f4bed4bdd55963d5a0e2",
+                "reference": "1de2197866da049c67c5f4bed4bdd55963d5a0e2",
+                "shasum": ""
+            },
+            "require": {
+                "php": "^7.1"
+            },
+            "type": "library",
+            "autoload": {
+                "psr-4": {
+                    "OliviaRouter\\": "src"
+                }
+            },
+            "notification-url": "https://packagist.org/downloads/",
+            "license": [
+                "MIT"
+            ],
+            "authors": [
+                {
+                    "name": "Elzo Brito dos Santos Filho",
+                    "email": "elzo.filho@etec.sp.gov.br"
+                }
+            ],
+            "description": "Router php",
+            "support": {
+                "issues": "https://github.com/elzobrito/OliviaRoute/issues",
+                "source": "https://github.com/elzobrito/OliviaRoute/tree/1.0"
+            },
+            "time": "2021-11-01T17:35:02+00:00"
         },
         {
             "name": "elzobrito/olivia-upload-file",

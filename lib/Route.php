@@ -2,8 +2,8 @@
 
 namespace OliviaLib;
 
-use OliviaLib\Router;
 use OliviaLib\CommandController;
+use OliviaRouter\Router;
 
 class Route extends CommandController
 {

@@ -15,6 +15,7 @@ return array(
     'PHPMailer\\PHPMailer\\' => array($vendorDir . '/phpmailer/phpmailer/src'),
     'Oliviapdf\\' => array($vendorDir . '/elzobrito/olivia-pdf/src'),
     'OliviaUpload\\' => array($vendorDir . '/elzobrito/olivia-upload-file/src'),
+    'OliviaRouter\\' => array($vendorDir . '/elzobrito/olivia-router/src'),
     'OliviaPublico\\' => array($baseDir . '/publico'),
     'OliviaPagination\\' => array($vendorDir . '/elzobrito/olivia-pagination/src'),
     'OliviaLib\\' => array($baseDir . '/lib'),
