@@ -25,7 +25,7 @@ class Config
     {
         $_SESSION['e404'] = false;
         $_SESSION['CSRF'] = true;
-        $_SESSION['App_folder'] = 'App';
+        $_SESSION['App_folder'] = 'OliviaApp';
         $_SESSION['Middleware_folder'] = 'Middleware';
         $_SESSION['Controller_folder'] = 'Controller';
         $_SESSION['BASENAME'] = explode('/', $_SERVER["REQUEST_URI"])[1];

@@ -5,7 +5,7 @@
         'type' => 'library',
         'install_path' => __DIR__ . '/../../',
         'aliases' => array(),
-        'reference' => '6187b861f30a9e2fd83f0f34c45ab280b57aef91',
+        'reference' => '2c75103427d9e5bb6e776bfd04db359a00145851',
         'name' => 'elzobrito/olivia-app',
         'dev' => true,
     ),
@@ -25,7 +25,7 @@
             'type' => 'library',
             'install_path' => __DIR__ . '/../../',
             'aliases' => array(),
-            'reference' => '6187b861f30a9e2fd83f0f34c45ab280b57aef91',
+            'reference' => '2c75103427d9e5bb6e776bfd04db359a00145851',
             'dev_requirement' => false,
         ),
         'elzobrito/olivia-databaselibrary' => array(
@@ -65,12 +65,12 @@
             'dev_requirement' => false,
         ),
         'elzobrito/olivia-router' => array(
-            'pretty_version' => '1.0',
-            'version' => '1.0.0.0',
+            'pretty_version' => '1.1',
+            'version' => '1.1.0.0',
             'type' => 'library',
             'install_path' => __DIR__ . '/../elzobrito/olivia-router',
             'aliases' => array(),
-            'reference' => '1de2197866da049c67c5f4bed4bdd55963d5a0e2',
+            'reference' => '112302208e315cb12d0ecbd84f311c375f569376',
             'dev_requirement' => false,
         ),
         'elzobrito/olivia-upload-file' => array(

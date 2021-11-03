@@ -240,23 +240,23 @@
         },
         {
             "name": "elzobrito/olivia-router",
-            "version": "1.0",
-            "version_normalized": "1.0.0.0",
+            "version": "1.1",
+            "version_normalized": "1.1.0.0",
             "source": {
                 "type": "git",
                 "url": "https://github.com/elzobrito/OliviaRoute.git",
-                "reference": "1de2197866da049c67c5f4bed4bdd55963d5a0e2"
+                "reference": "112302208e315cb12d0ecbd84f311c375f569376"
             },
             "dist": {
                 "type": "zip",
-                "url": "https://api.github.com/repos/elzobrito/OliviaRoute/zipball/1de2197866da049c67c5f4bed4bdd55963d5a0e2",
-                "reference": "1de2197866da049c67c5f4bed4bdd55963d5a0e2",
+                "url": "https://api.github.com/repos/elzobrito/OliviaRoute/zipball/112302208e315cb12d0ecbd84f311c375f569376",
+                "reference": "112302208e315cb12d0ecbd84f311c375f569376",
                 "shasum": ""
             },
             "require": {
                 "php": "^7.1"
             },
-            "time": "2021-11-01T17:35:02+00:00",
+            "time": "2021-11-01T23:11:27+00:00",
             "type": "library",
             "installation-source": "dist",
             "autoload": {
@@ -277,7 +277,7 @@
             "description": "Router php",
             "support": {
                 "issues": "https://github.com/elzobrito/OliviaRoute/issues",
-                "source": "https://github.com/elzobrito/OliviaRoute/tree/1.0"
+                "source": "https://github.com/elzobrito/OliviaRoute/tree/1.1"
             },
             "install-path": "../elzobrito/olivia-router"
         },
