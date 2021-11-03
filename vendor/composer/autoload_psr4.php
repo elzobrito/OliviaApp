@@ -11,8 +11,6 @@ return array(
     'Symfony\\Polyfill\\Ctype\\' => array($vendorDir . '/symfony/polyfill-ctype'),
     'Ramsey\\Uuid\\' => array($vendorDir . '/ramsey/uuid/src'),
     'Ramsey\\Collection\\' => array($vendorDir . '/ramsey/collection/src'),
-    'Phlib\\XssSanitizer\\' => array($vendorDir . '/phlib/xss-sanitizer/src'),
-    'PHPMailer\\PHPMailer\\' => array($vendorDir . '/phpmailer/phpmailer/src'),
     'Oliviapdf\\' => array($vendorDir . '/elzobrito/olivia-pdf/src'),
     'OliviaUpload\\' => array($vendorDir . '/elzobrito/olivia-upload-file/src'),
     'OliviaRouter\\' => array($vendorDir . '/elzobrito/olivia-router/src'),

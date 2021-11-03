@@ -25,11 +25,6 @@ class ComposerStaticInit54aa441173212cda65bdbcd1c8f2dffa
             'Ramsey\\Uuid\\' => 12,
             'Ramsey\\Collection\\' => 18,
         ),
-        'P' => 
-        array (
-            'Phlib\\XssSanitizer\\' => 19,
-            'PHPMailer\\PHPMailer\\' => 20,
-        ),
         'O' => 
         array (
             'Oliviapdf\\' => 10,
@@ -75,14 +70,6 @@ class ComposerStaticInit54aa441173212cda65bdbcd1c8f2dffa
         'Ramsey\\Collection\\' => 
         array (
             0 => __DIR__ . '/..' . '/ramsey/collection/src',
-        ),
-        'Phlib\\XssSanitizer\\' => 
-        array (
-            0 => __DIR__ . '/..' . '/phlib/xss-sanitizer/src',
-        ),
-        'PHPMailer\\PHPMailer\\' => 
-        array (
-            0 => __DIR__ . '/..' . '/phpmailer/phpmailer/src',
         ),
         'Oliviapdf\\' => 
         array (

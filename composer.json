@@ -22,10 +22,6 @@
         "elzobrito/olivia-pdf": "^1.0",
         "elzobrito/olivia-upload-file": "^1.1",
         "elzobrito/olivia-databaselibrary": "^1.1",
-        "ramsey/uuid": "^4.0",
-        "phlib/xss-sanitizer": "^1.1",
-        "phpmailer/phpmailer": "^6.1",
-        "fpdf/fpdf": "^1.82",
-        "ext-json": "*"
+        "ramsey/uuid": "^4.0"
     }
 }
