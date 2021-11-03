@@ -20,9 +20,6 @@ class Index extends ViewModel
         <header class="mb-auto">
             <div>
                 <h3 class="float-md-left mb-0">Olívia</h3>
-                <nav class="nav nav-masthead justify-content-center float-md-right">
-                    <a class="nav-link active" aria-current="page" href="<?= $this->route('olivia-login', []) ?>">Login</a>
-                </nav>
             </div>
         </header>
     <?php
