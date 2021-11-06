@@ -2,9 +2,9 @@
 
 namespace OliviaPublico;
 
-use OliviaPublico\View\ViewModelLogin;
+use OliviaPublico\View\ViewModelErro;
 
-class E404 extends ViewModelLogin
+class E404 extends ViewModelErro
 {
     public function config()
     {

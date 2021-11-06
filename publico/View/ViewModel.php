@@ -98,9 +98,8 @@ abstract class ViewModel extends CommandController
             <meta name="viewport" content="width=device-width, initial-scale=1">
             <title>Olívia</title>
             <!-- Theme style -->
-            <link rel="stylesheet" href=".<?= DIRECTORY_SEPARATOR . $_SESSION['BASENAME'] . DIRECTORY_SEPARATOR . $this->nivel  . DIRECTORY_SEPARATOR . 'publico' . DIRECTORY_SEPARATOR . 'dist' . DIRECTORY_SEPARATOR . 'css' . DIRECTORY_SEPARATOR . 'bootstrap.min.css' ?>">
-            <link rel="stylesheet" href=".<?= DIRECTORY_SEPARATOR . $_SESSION['BASENAME'] . DIRECTORY_SEPARATOR . $this->nivel  . DIRECTORY_SEPARATOR . 'publico' . DIRECTORY_SEPARATOR . 'dist' . DIRECTORY_SEPARATOR . 'css' . DIRECTORY_SEPARATOR . 'cover.css' ?>">
-
+            <link rel="stylesheet" href="https://getbootstrap.com/docs/5.1/dist/css/bootstrap.min.css">
+            <link rel="stylesheet" href="https://getbootstrap.com/docs/5.1/examples/cover/cover.css">
             <style>
                 .bd-placeholder-img {
                     font-size: 1.125rem;
@@ -134,6 +133,7 @@ abstract class ViewModel extends CommandController
                 ?>
             </div>
         </body>
+
         </html>
 <?php
     }

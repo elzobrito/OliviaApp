@@ -4,7 +4,7 @@ namespace OliviaPublico\View;
 
 use OliviaLib\CommandController;
 
-abstract class ViewModelLogin extends CommandController
+abstract class ViewModelErro extends CommandController
 {
 
     abstract function content();
@@ -97,33 +97,14 @@ abstract class ViewModelLogin extends CommandController
             <!-- Theme style -->
             <link rel="stylesheet" href=".<?= DIRECTORY_SEPARATOR . $_SESSION['BASENAME'] . DIRECTORY_SEPARATOR . $this->nivel  . DIRECTORY_SEPARATOR . 'publico' . DIRECTORY_SEPARATOR . 'dist' . DIRECTORY_SEPARATOR . 'css' . DIRECTORY_SEPARATOR . 'adminlte.min.css' ?>">
         </head>
-    <?php
+<?php
     }
 
     private function body()
     {
         $this->config();
-    ?>
-
-        <body class="hold-transition login-page">
-            <!-- Site wrapper -->
-
-            <?php
-            $this->content();
-            ?>
-            <!-- /.login-box -->
-            <!-- ./wrapper -->
-
-            <!-- jQuery -->
-            <script src=".<?= DIRECTORY_SEPARATOR . $_SESSION['BASENAME'] . DIRECTORY_SEPARATOR . $this->nivel . DIRECTORY_SEPARATOR . 'publico' . DIRECTORY_SEPARATOR . 'plugins' . DIRECTORY_SEPARATOR . 'jquery' . DIRECTORY_SEPARATOR . 'jquery.min.js' ?>"></script>
-            <!-- Bootstrap 4 -->
-            <script src=".<?= DIRECTORY_SEPARATOR . $_SESSION['BASENAME'] . DIRECTORY_SEPARATOR . $this->nivel . DIRECTORY_SEPARATOR . 'publico' . DIRECTORY_SEPARATOR . 'plugins' . DIRECTORY_SEPARATOR . 'bootstrap' . DIRECTORY_SEPARATOR . 'js' . DIRECTORY_SEPARATOR . 'bootstrap.bundle.min.js' ?>"></script>
-            <!-- AdminLTE App -->
-            <script src=".<?= DIRECTORY_SEPARATOR . $_SESSION['BASENAME'] . DIRECTORY_SEPARATOR . $this->nivel . DIRECTORY_SEPARATOR . 'publico' . DIRECTORY_SEPARATOR . 'dist' . DIRECTORY_SEPARATOR . 'js' . DIRECTORY_SEPARATOR . 'adminlte.min.js' ?>"></script>
-
-        </body>
-
-        </html>
-<?php
+        echo '<body class="hold-transition login-page">';
+        $this->content();
+        echo '</body></html>';
     }
 }
