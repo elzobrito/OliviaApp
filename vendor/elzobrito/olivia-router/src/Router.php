@@ -31,7 +31,9 @@ class Router
 
     public function route($http_method, $pattern, $controller_method, $middleware)
     {
-        $pattern = $this->routeToRegex('/' . $_SESSION['BASENAME'] . $pattern);
+        $basePath = isset($_SESSION['BASE_PATH']) ? rtrim($_SESSION['BASE_PATH'], '/') : '';
+        $normalizedPattern = '/' . ltrim($pattern, '/');
+        $pattern = $this->routeToRegex($basePath . $normalizedPattern);
 
         $handler = [
             'http_method' => $http_method,

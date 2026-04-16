@@ -23,8 +23,11 @@ class Route extends CommandController
 
         $router->execute($_SERVER);
 
-        if ($_SESSION['e404'])
-            header('Location: http://' . $_SERVER['HTTP_HOST'] . DIRECTORY_SEPARATOR . $_SESSION['BASENAME'] . DIRECTORY_SEPARATOR . 'error404');
+        if ($_SESSION['e404']) {
+            $scheme = (!empty($_SERVER['HTTPS']) && $_SERVER['HTTPS'] !== 'off') ? 'https' : 'http';
+            $basePath = isset($_SESSION['BASE_PATH']) ? rtrim($_SESSION['BASE_PATH'], '/') : '';
+            header('Location: ' . $scheme . '://' . $_SERVER['HTTP_HOST'] . $basePath . '/error404');
+        }
     }
 
     private function execute_action_test($router, $middleware, $controller, $name)

@@ -23,12 +23,18 @@ class Config
 {
     public function __construct()
     {
+        $scriptName = isset($_SERVER['SCRIPT_NAME']) ? str_replace('\\', '/', $_SERVER['SCRIPT_NAME']) : '';
+        $basePath = str_replace('\\', '/', dirname($scriptName));
+        $basePath = $basePath === '/' || $basePath === '.' ? '' : rtrim($basePath, '/');
+        $basename = $basePath === '' ? '' : basename($basePath);
+
         $_SESSION['e404'] = false;
         $_SESSION['CSRF'] = true;
         $_SESSION['App_folder'] = 'OliviaApp';
         $_SESSION['Middleware_folder'] = 'Middleware';
         $_SESSION['Controller_folder'] = 'Controller';
-        $_SESSION['BASENAME'] = explode('/', $_SERVER["REQUEST_URI"])[1];
+        $_SESSION['BASE_PATH'] = $basePath;
+        $_SESSION['BASENAME'] = $basename;
 
         if (!isset($_SESSION['UUID'])) {
             $uuid = Uuid::uuid4();
