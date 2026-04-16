@@ -2,7 +2,7 @@
 
 namespace OliviaDatabaseModel;
 
-use OliviaLib\Database;
+use OliviaDatabaseConfig\Database;
 use OliviaDatabaseLibrary\QueryBuilder;
 use OliviaDatabaseLibrary\Model as iModel;
 
@@ -11,6 +11,7 @@ class Model implements iModel
     protected $table;
     protected $drive;
     protected $fillable = array();
+    protected $atributos = array();
 
     /**
      * @var array
@@ -40,40 +41,51 @@ class Model implements iModel
 
     public function update($fields, $wheres, $values)
     {
-        $qb = new QueryBuilder(Database::getDB($this->drive));
-        return  $qb
+        return (new QueryBuilder(Database::getDB($this->drive)))
             ->table($this->table)
             ->fields($fields)
             ->where($wheres)
             ->update($values);
     }
-
-    public function save($fields = null, $valores = null)
+    public function save($fields = [], $valores = [])
     {
-        $qb = new QueryBuilder(Database::getDB($this->drive));
-        return $qb
+        return (new QueryBuilder(Database::getDB($this->drive)))
             ->table($this->table)
-            ->fields(($fields ?? $this->fill()))
-            ->insert(($valores ?? $this->values()));
+            ->fields(($fields ?: $this->fill()))
+            ->insert(($valores ?: $this->values()));
     }
 
-    public function delete($id = null, $primaryKey = null)
+    public function delete($id = null, $primaryKey = 'id')
+    {
+
+        return (new QueryBuilder(Database::getDB($this->drive)))
+            ->table($this->table)
+            ->where([$primaryKey . ' = ?'])
+            ->delete([$id ?? isset($this->id)]);
+    }
+
+
+    public function deleteFull($id = null, $primaryKey = null, $wheres = null, $values = null, $join = null, $group = null, $having = null, $limit = null)
     {
         if ($id || isset($this->id)) {
             $value = $id ?? isset($this->id);
             $qb = new QueryBuilder(Database::getDB($this->drive));
             return $qb
                 ->table($this->table)
-                ->where([($primaryKey ?? 'id') . ' = ?'])
-                ->delete([$value]);
+                ->where($wheres ?? [($primaryKey ?? 'id') . ' = ?'])
+                ->join($join)
+                ->group($group)
+                ->having($having)
+                ->limit($limit)
+                ->delete($values ?? [$value]);
         }
     }
 
     public function find($fields, $wheres, $values, $join = null, $group = null, $order = null, $having = null, $limit = null)
     {
-        $qb = new QueryBuilder(Database::getDB($this->drive));
-        return $qb->table($this->table)
-            ->fields($fields ?? ['*'])
+        return (new QueryBuilder(Database::getDB($this->drive)))
+            ->table($this->table)
+            ->fields($fields ?? $this->atributos)
             ->where($wheres)
             ->join($join)
             ->group($group)
@@ -84,20 +96,22 @@ class Model implements iModel
     }
 
 
-    public function all($fields = null, $order = null, $limit = null)
+    public function all($fields = null, $order = null, $limit = null, $join = null, $group = null)
     {
-        $qb = new QueryBuilder(Database::getDB($this->drive));
-        return $qb->table($this->table)
-            ->fields($fields ?? ['*'])
+        return (new QueryBuilder(Database::getDB($this->drive)))
+            ->table($this->table)
+            ->fields($fields ?? $this->atributos)
             ->order($order)
             ->limit($limit)
+            ->join($join)
+            ->group($group)
             ->select();
     }
 
     public function count($wheres = null, $values = null, $join = null, $group = null, $order = null, $having = null, $limit = null)
     {
-        $qb = new QueryBuilder(Database::getDB($this->drive));
-        return $qb->table($this->table)
+        return (new QueryBuilder(Database::getDB($this->drive)))
+            ->table($this->table)
             ->fields(['count(*) as total'])
             ->where($wheres)
             ->join($join)
@@ -110,9 +124,9 @@ class Model implements iModel
 
     public function findForId($id, $primaryKey = null, $fields = null, $join = null, $order = null, $limit = null)
     {
-        $qb = new QueryBuilder(Database::getDB($this->drive));
-        return $qb->table($this->table)
-            ->fields($fields ?? ['*'])
+        return (new QueryBuilder(Database::getDB($this->drive)))
+            ->table($this->table)
+            ->fields($fields ?? $this->atributos)
             ->where([($primaryKey ?? 'id') . ' = ?'])
             ->join($join)
             ->order($order)

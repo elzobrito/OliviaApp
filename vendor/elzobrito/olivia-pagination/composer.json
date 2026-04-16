@@ -1,7 +1,16 @@
 {
     "name": "elzobrito/olivia-pagination",
-    "description": "pagination php",
+    "description": "Simple PHP pagination library with HTML link rendering and offset/limit helpers",
+    "type": "library",
     "license": "MIT",
+    "keywords": [
+        "php",
+        "pagination",
+        "paginator",
+        "bootstrap",
+        "offset",
+        "limit"
+    ],
     "authors": [
         {
             "name": "Elzo Brito dos Santos Filho",
@@ -9,11 +18,13 @@
         }
     ],
     "require": {
-        "php": "^7.1"
+        "php": "^7.1|^8.2.4"
     },
     "autoload": {
         "psr-4": {
             "OliviaPagination\\": "src"
         }
-    }
+    },
+    "minimum-stability": "stable",
+    "prefer-stable": true
 }

@@ -2,53 +2,88 @@
 
 namespace OliviaDatabaseLibrary;
 
-use \PDO;
-use \PDOStatement;
-use \Exception;
-use \PDOException;
-
-/**
- * Class Connection
- * @package elzobrito
- */
-class Connection
+use Exception;
+use InvalidArgumentException;
+use PDO;
+use PDOException;
+class Connection implements ConnectionInterface
 {
-    /**
-     * @var PDO
-     */
+    private static $instance = null;
     private $pdo = null;
-    /**
-     * @var array
-     */
     private $options = [];
 
-    /**
-     * Connection constructor.
-     * @param array $options
-     * @throws Exception
-     */
     public function __construct(array $options)
     {
+        // Verifica se as opções obrigatórias estão presentes
+        if (!isset($options['host']) || !is_string($options['host'])) {
+            throw new InvalidArgumentException('A opção "host" é obrigatória e deve ser uma string');
+        }
+        if (!isset($options['user']) || !is_string($options['user'])) {
+            throw new InvalidArgumentException('A opção "user" é obrigatória e deve ser uma string');
+        }
+        if (!isset($options['password']) || !is_string($options['password'])) {
+            throw new InvalidArgumentException('A opção "password" é obrigatória e deve ser uma string');
+        }
+
+        // Verifica se as opções opcionais têm valores válidos
+        if (isset($options['ssl']) && !is_bool($options['ssl'])) {
+            throw new InvalidArgumentException('A opção "ssl" deve ser um valor booleano');
+        }
+
         $this->options = $options;
     }
 
     /**
-     * @return PDO
+     * @return instance
      */
-    protected function connect()
+    public static function getInstance(array $options)
+    {
+        if (self::$instance === null) {
+            self::$instance = new Connection($options);
+        }
+        return self::$instance;
+    }
+
+    /**
+     * @return PDO
+     * @throws PDOException
+     */
+    public function connect(): PDO
     {
         if (!$this->pdo) {
-            try {
-                $options = array(
-                    PDO::MYSQL_ATTR_INIT_COMMAND => 'SET NAMES "UTF8"',
-                    // PDO::MYSQL_ATTR_SSL_CA => __DIR__ . DIRECTORY_SEPARATOR . 'BaltimoreCyberTrustRoot.crt.pem'
-                );
-                $this->pdo = new PDO($this->dsn(), $this->options['user'], $this->options['password'], $options);
-                // set the PDO error mode to exception
-                // $this->pdo->setAttribute(PDO::ATTR_ERRMODE, PDO::ERRMODE_EXCEPTION);
-            } catch (PDOException $e) {
-                $this->status = "Falha ao tentar conectar: \n" . $e->getMessage();
+            $attempts = 0;
+            while ($attempts < 3) {
+                try {
+
+                    if (isset($this->options['ssl']) && $this->options['ssl']) {
+                        $options = array(
+                            PDO::MYSQL_ATTR_INIT_COMMAND => 'SET NAMES "UTF8"',
+                            PDO::MYSQL_ATTR_SSL_VERIFY_SERVER_CERT => true,
+                        );
+
+                        $caFile = __DIR__ . DIRECTORY_SEPARATOR . 'BaltimoreCyberTrustRoot.crt.pem';
+                        if (file_exists($caFile)) {
+                            $options[PDO::MYSQL_ATTR_SSL_CA] = $caFile;
+                        }
+                    } else {
+                        $options = array(
+                            PDO::MYSQL_ATTR_INIT_COMMAND => 'SET NAMES "UTF8"',
+                            PDO::MYSQL_ATTR_SSL_VERIFY_SERVER_CERT => false,
+                        );
+                    }
+
+                    $this->pdo = new PDO($this->dsn(), $this->options['user'], $this->options['password'], $options);
+                    // set the PDO error mode
+                    $errorMode = isset($this->options['errorMode']) ? $this->options['errorMode'] : PDO::ERRMODE_EXCEPTION;
+                    $this->pdo->setAttribute(PDO::ATTR_ERRMODE, $errorMode);
+
+                    return $this->pdo; // Conexão estabelecida, retornar o objeto PDO
+                } catch (PDOException $e) {
+                    $attempts++;
+                    sleep(1);
+                }
             }
+            throw new PDOException("Falha ao tentar conectar ao banco de dados.");
         }
         return $this->pdo;
     }
@@ -58,95 +93,61 @@ class Connection
      */
     protected function dsn()
     {
-        return "{$this->options['driver']}:host={$this->options['host']};port={$this->options['port']};dbname={$this->options['database']}";
+        try {
+            return "{$this->options['driver']}:host={$this->options['host']};port={$this->options['port']};dbname={$this->options['database']}";
+        } catch (PDOException $e) {
+            throw new Exception("Falha ao aplicar o dns: " . $e->getMessage());
+        }
     }
 
-    /**
-     * @param $sql
-     * @return PDOStatement
-     */
     private final function statement($sql)
     {
+        $attempts = 0;
+        while ($attempts < 3) {
+            try {
+                return $this->connect()->prepare($sql);
+            } catch (PDOException $e) {
+                $attempts++;
+                if ($attempts >= 3) {
+                    throw new Exception("Falha ao preparar a declaração SQL: " . $e->getMessage());
+                }
+                sleep(1);
+            }
+        }
+    }
+
+    public function executeInsert($sql, array $values): ?string
+    {
+        $statement = $this->statement($sql);
+
         try {
-            return $this->connect()->prepare($sql);
+            if ($statement && $statement->execute(array_values($values))) {
+                return $this->connect()->lastInsertId();
+            }
         } catch (PDOException $e) {
-            $this->status = "Falha ao tentar conectar: \n" . $e->getMessage();
-        }
-    }
-
-    /**
-     * @param string $sql
-     * @param array $values
-     * @return string
-     */
-    protected final function executeInsert($sql, array $values)
-    {
-        $statement = $this->statement($sql);
-
-        if ($statement && $statement->execute(array_values($values))) {
-            return $this->connect()->lastInsertId();
+            throw new Exception("Falha ao executar a consulta de inserção: " . $e->getMessage());
         }
 
         return null;
     }
 
-    /**
-     * @param string $sql
-     * @param array $values
-     * @return array
-     */
-    protected final function executeSelect($sql, array $values)
+    public function executeSelect($sql, array $values): ?array
     {
         $statement = $this->statement($sql);
 
-        if ($statement && $statement->execute(array_values($values))) {
-            return $statement->fetchAll(PDO::FETCH_OBJ);
+        try {
+            if ($statement && $statement->execute(array_values($values))) {
+                return $statement->fetchAll(PDO::FETCH_OBJ);
+            }
+        } catch (PDOException $e) {
+            throw new Exception("Falha ao executar a consulta de seleção: " . $e->getMessage());
         }
 
         return null;
     }
 
-    /**
-     * @param string $sql
-     * @param array $values
-     * @return int
-     */
-    protected final function executeUpdate($sql, array $values)
+    public function close(): void
     {
-        return $this->execute($sql, $values);
-    }
-
-    /**
-     * @param string $sql
-     * @param array $values
-     * @return int
-     */
-    protected final function executeDelete($sql, array $values)
-    {
-        return $this->execute($sql, $values);
-    }
-
-    /**
-     * @param $sql
-     * @param array $values
-     * @return int|null
-     */
-    protected final function execute($sql, array $values)
-    {
-        $statement = $this->statement($sql);
-
-        if ($statement && $statement->execute(array_values($values))) {
-            return $statement->rowCount();
-        }
-
-        return null;
-    }
-
-    /**
-     * @return array
-     */
-    public function getOptions()
-    {
-        return $this->options;
+        $this->pdo = null;
     }
 }

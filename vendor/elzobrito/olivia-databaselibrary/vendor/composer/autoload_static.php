@@ -4,7 +4,7 @@
 
 namespace Composer\Autoload;
 
-class ComposerStaticInitaa0a474bd58e2142db771a29fbe38238
+class ComposerStaticInitdd122f9c73b6b68172f6ae05070c1589
 {
     public static $prefixLengthsPsr4 = array (
         'O' => 
@@ -13,6 +13,7 @@ class ComposerStaticInitaa0a474bd58e2142db771a29fbe38238
             'OliviaDatabaseModel\\' => 20,
             'OliviaDatabaseLibrary\\' => 22,
             'OliviaDatabaseConfig\\' => 21,
+            'OliviaCache\\' => 12,
         ),
     );
 
@@ -33,6 +34,10 @@ class ComposerStaticInitaa0a474bd58e2142db771a29fbe38238
         array (
             0 => __DIR__ . '/../..' . '/config',
         ),
+        'OliviaCache\\' => 
+        array (
+            0 => __DIR__ . '/..' . '/elzobrito/olivia-cache/src',
+        ),
     );
 
     public static $classMap = array (
@@ -42,9 +47,9 @@ class ComposerStaticInitaa0a474bd58e2142db771a29fbe38238
     public static function getInitializer(ClassLoader $loader)
     {
         return \Closure::bind(function () use ($loader) {
-            $loader->prefixLengthsPsr4 = ComposerStaticInitaa0a474bd58e2142db771a29fbe38238::$prefixLengthsPsr4;
-            $loader->prefixDirsPsr4 = ComposerStaticInitaa0a474bd58e2142db771a29fbe38238::$prefixDirsPsr4;
-            $loader->classMap = ComposerStaticInitaa0a474bd58e2142db771a29fbe38238::$classMap;
+            $loader->prefixLengthsPsr4 = ComposerStaticInitdd122f9c73b6b68172f6ae05070c1589::$prefixLengthsPsr4;
+            $loader->prefixDirsPsr4 = ComposerStaticInitdd122f9c73b6b68172f6ae05070c1589::$prefixDirsPsr4;
+            $loader->classMap = ComposerStaticInitdd122f9c73b6b68172f6ae05070c1589::$classMap;
 
         }, null, ClassLoader::class);
     }

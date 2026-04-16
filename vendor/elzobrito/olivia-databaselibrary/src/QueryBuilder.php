@@ -2,44 +2,48 @@
 
 namespace OliviaDatabaseLibrary;
 
-/**
- * Class QueryBuilder
- * @package elzobrito
- * @method QueryBuilder table (string $table)
- * @method QueryBuilder join (string $join)
- * @method QueryBuilder fields (array $fields)
- * @method QueryBuilder where (array $where)
- * @method QueryBuilder order (array $order)
- * @method QueryBuilder group (array $group)
- * @method QueryBuilder having (array $having)
- * @method QueryBuilder limit (array $join)
- */
+use InvalidArgumentException;
+use OliviaCache\SessionCache;
+
 class QueryBuilder extends Connection
 {
     /**
+     * As cláusulas armazenadas.
+     *
      * @var array
      */
-    private $clausules = [];
+    private $clauses = [];
 
     /**
-     * @param $name
-     * @param $arguments
+     * Chama um método para definir uma cláusula.
+     *
+     * @param string $name      O nome do método chamado.
+     * @param array  $arguments Os argumentos passados para o método.
+     *
+     * @throws InvalidArgumentException Se o nome da cláusula for inválido.
+     *
      * @return $this
      */
-    function __call($name, $arguments)
+    public function __call($name, $arguments)
     {
-        $clausule = $arguments[0];
-        if (count($arguments) > 1) {
-            $clausule = $arguments;
+        $validClauses = ['table', 'fields', 'join', 'pre', 'where', 'group', 'order', 'having', 'limit'];
+        if (!in_array(strtolower($name), $validClauses)) {
+            throw new InvalidArgumentException('Nome de cláusula inválido: ' . $name);
         }
-        $this->clausules[strtolower($name)] = $clausule;
+
+        $clause = $arguments[0];
+        if (count($arguments) > 1) {
+            $clause = $arguments;
+        }
+        $this->clauses[strtolower($name)] = $clause;
 
         return $this;
     }
 
     /**
-     * QueryBuilder constructor.
-     * @param array $options
+     * Construtor da classe QueryBuilder.
+     *
+     * @param array $options As opções de configuração do banco de dados.
      */
     public function __construct($options)
     {
@@ -47,202 +51,202 @@ class QueryBuilder extends Connection
     }
 
     /**
-     * @param array $values
-     * @return string
+     * Executa uma instrução INSERT.
+     *
+     * @param array $values Os valores a serem inseridos.
+     *
+     * @throws InvalidArgumentException Se as cláusulas 'table' e 'fields' não estiverem definidas.
+     *
+     * @return mixed O resultado da execução da instrução INSERT.
      */
     public function insert($values)
     {
-        // recupera o nome da tabela
-        // ou deixa uma marcação para mostrar que faltou informar esse campo
-        $table = isset($this->clausules['table']) ? $this->clausules['table'] : '<table>';
+        $this->validateClause('table');
+        $this->validateClause('fields');
 
-        // recupera o array dos campos
-        // ou deixa uma marcação para mostrar que faltou informar esse campo
-        $_fields = isset($this->clausules['fields']) ? $this->clausules['fields'] : '<fields>';
-        $fields = implode(', ', $_fields);
+        $table = $this->clauses['table'];
+        $fields = implode(', ', $this->clauses['fields']);
+        $placeholders = implode(', ', array_fill(0, count($this->clauses['fields']), '?'));
 
-        // cria uma lista de rótulos para usar "prepared statement"
-        $_placeholders = array_map(function() {
-            return '?';
-        }, $_fields);
-        $placeholders = implode(', ', $_placeholders);
+        $sql = "INSERT INTO {$table} ({$fields}) VALUES ({$placeholders})";
 
-        $command = [];
-        $command[] = 'INSERT INTO';
-        $command[] = $table;
-        $command[] = '(' . $fields . ')';
-        $command[] = 'VALUES';
-        $command[] = '(' . $placeholders . ')';
+        $cache = new SessionCache($table);
+        $cache->delete();
 
-        // INSERT INTO {table} ({fields}) VALUES ({values});
-        // junta o comando
-        $sql = implode(' ', $command);
-        // echo $sql;
-        // print_r($values);
         return $this->executeInsert($sql, $values);
     }
 
     /**
-     * @param $values
-     * @return string
+     * Executa uma instrução SELECT.
+     *
+     * @param array $values Os valores a serem usados nos placeholders da consulta.
+     *
+     * @throws InvalidArgumentException Se as cláusulas 'table' e 'fields' não estiverem definidas.
+     *
+     * @return mixed O resultado da execução da instrução SELECT.
      */
     public function select($values = [])
     {
-        // recupera o nome da tabela
-        // ou deixa uma marcação para mostrar que faltou informar esse campo
-        $table = isset($this->clausules['table']) ? $this->clausules['table'] : '<table>';
+        $this->validateClause('table');
+        $this->validateClause('fields');
 
-        // recupera o array dos campos
-        // ou deixa uma marcação para mostrar que faltou informar esse campo
-        $_fields = isset($this->clausules['fields']) ? $this->clausules['fields'] : '*';
-        $fields = implode(', ', $_fields);
+        $table = $this->clauses['table'];
+        $fields = implode(', ', $this->clauses['fields']);
+        $join = $this->clauses['join'] ?? '';
+        $preSelect = $this->clauses['pre'] ?? '';
 
-        $join = isset($this->clausules['join']) ? $this->clausules['join'] : '';
-        $preSelect = isset($this->clausules['pre']) ? $this->clausules['pre'] : '';
+        $sql = $preSelect . ' SELECT ' . $fields . ' FROM ' . $table;
 
-        $command = [];
-        $command[] = $preSelect;
-        $command[] = 'SELECT';
-        $command[] = $fields;
-        $command[] = 'FROM';
-        $command[] = $table;
         if ($join) {
-            $command[] = $join;
+            $sql .= ' ' . $join;
         }
 
-        $clausules = [
-            'where' => [
-                'instruction' => 'WHERE',
-                'separator' => ' ',
-            ],
-            'group' => [
-                'instruction' => 'GROUP BY',
-                'separator' => ', ',
-            ],
-            'order' => [
-                'instruction' => 'ORDER BY',
-                'separator' => ', ',
-            ],
-            'having' => [
-                'instruction' => 'HAVING',
-                'separator' => ' AND ',
-            ],
-            'limit' => [
-                'instruction' => 'LIMIT',
-                'separator' => ',',
-            ],
-        ];
-        foreach($clausules as $key => $clausule) {
-            if (isset($this->clausules[$key])) {
-                $value = $this->clausules[$key];
-                if (is_array($value)) {
-                    $value = implode($clausule['separator'], $this->clausules[$key]);
-                }
-                $command[] = $clausule['instruction'] . ' ' . $value;
+        foreach (['where', 'group', 'order', 'having', 'limit'] as $key) {
+            if (isset($this->clauses[$key])) {
+                $sql .= ' ' . $this->clauses[$key]['instruction'] . ' ';
+                $sql .= implode($this->clauses[$key]['separator'], $this->clauses[$key]) . ' ';
             }
         }
 
-        // SELECT {fields} FROM <JOIN> {table} <WHERE> <GROUP> <ORDER> <HAVING> <LIMIT>;
-        // junta o comando
-        $sql = implode(' ', $command);
-        return $this->executeSelect($sql, $values);
+        $cache = new SessionCache($table);
+        $cacheKey = md5($sql . json_encode($values) . $table);
+
+        $result = $cache->get($cacheKey);
+
+        if ($result === null) {
+            $result = $this->executeSelect($sql, $values);
+            $cache->set($cacheKey, $result);
+        }
+
+        return $result;
     }
 
     /**
-     * @param $values
-     * @param $filters
-     * @return int
+     * Executa uma instrução UPDATE.
+     *
+     * @param array $values  Os valores a serem atualizados.
+     * @param array $filters Os filtros para a cláusula WHERE.
+     *
+     * @throws InvalidArgumentException Se as cláusulas 'table' e 'fields' não estiverem definidas.
+     *
+     * @return mixed O resultado da execução da instrução UPDATE.
      */
     public function update($values, $filters = [])
     {
-        // recupera o nome da tabela
-        // ou deixa uma marcação para mostrar que faltou informar esse campo
-        $table = isset($this->clausules['table']) ? $this->clausules['table'] : '<table>';
+        $this->validateClause('table');
+        $this->validateClause('fields');
 
-        $join = isset($this->clausules['join']) ? $this->clausules['join'] : '';
+        $table = $this->clauses['table'];
+        $join = $this->clauses['join'] ?? '';
+        $sets = is_array($this->clauses['fields']) ? implode(', ', array_map(fn ($value) => $value . ' = ?', $this->clauses['fields'])) : $this->clauses['fields'];
 
-        // recupera o array dos campos
-        // ou deixa uma marcação para mostrar que faltou informar esse campo
-        $_fields = isset($this->clausules['fields']) ? $this->clausules['fields'] : '<fields>';
+        $whereClausules = $this->clauses['where'] ?? [];
+        $whereArray = implode(' ', $whereClausules);
+        $where = !empty($whereArray) ? ' WHERE ' . $whereArray : '';
 
-        $sets = $_fields;
-        if (is_array($_fields)) {
-            $sets = implode(', ', array_map(function($value) {
-                return $value . ' = ?';
-            }, $_fields));
-        }
-
-        $command = [];
-        $command[] = 'UPDATE';
-        $command[] = $table;
+        $sql = "UPDATE {$table} ";
         if ($join) {
-            $command[] = $join;
+            $sql .= "{$join} ";
         }
-        $command[] = 'SET';
-        $command[] = $sets;
+        $sql .= "SET {$sets}{$where}";
 
-        $clausules = [
-            'where' => [
-                'instruction' => 'WHERE',
-                'separator' => ' ',
-            ]
-        ];
-        foreach($clausules as $key => $clausule) {
-            if (isset($this->clausules[$key])) {
-                $value = $this->clausules[$key];
-                if (is_array($value)) {
-                    $value = implode($clausule['separator'], $this->clausules[$key]);
-                }
-                $command[] = $clausule['instruction'] . ' ' . $value;
-            }
-        }
-
-        // UPDATE {table} SET {set} <WHERE>
-        // junta o comando
-        $sql = implode(' ', $command);
+        $cache = new SessionCache($table);
+        $cache->delete();
 
         return $this->executeUpdate($sql, array_merge($values, $filters));
     }
 
     /**
-     * @param $filters
-     * @return int
+     * Executa uma instrução DELETE.
+     *
+     * @param array $filters Os filtros para a cláusula WHERE.
+     *
+     * @throws InvalidArgumentException Se a cláusula 'table' não estiver definida.
+     *
+     * @return mixed O resultado da execução da instrução DELETE.
      */
-    public function delete($filters)
+    public function delete($filters = [])
     {
-        // recupera o nome da tabela
-        // ou deixa uma marcação para mostrar que faltou informar esse campo
-        $table = isset($this->clausules['table']) ? $this->clausules['table'] : '<table>';
+        $this->validateClause('table');
 
-        $join = isset($this->clausules['join']) ? $this->clausules['join'] : '';
+        $table = $this->clauses['table'];
+        $where = $this->clauses['where'] ?? null;
 
-        $command = [];
-        $command[] = 'DELETE FROM';
-        $command[] = $table;
-        if ($join) {
-            $command[] = $join;
+        $sql = ['DELETE FROM', $table];
+
+        if (isset($this->clauses['join'])) {
+            $sql[] = $this->clauses['join'];
         }
 
-        $clausules = [
-            'where' => [
-                'instruction' => 'WHERE',
-                'separator' => ' ',
-            ]
-        ];
-        foreach($clausules as $key => $clausule) {
-            if (isset($this->clausules[$key])) {
-                $value = $this->clausules[$key];
-                if (is_array($value)) {
-                    $value = implode($clausule['separator'], $this->clausules[$key]);
-                }
-                $command[] = $clausule['instruction'] . ' ' . $value;
+        if ($where !== null) {
+            $sql[] = 'WHERE';
+            if (is_array($where)) {
+                $sql[] = implode(' ', $where);
+            } else {
+                $sql[] = $where;
             }
         }
 
-        // DELETE FROM {table} <JOIN> <USING> <WHERE>
-        // junta o comando
-        $sql = implode(' ', $command);
+        $sql = implode(' ', $sql);
+
+        $cache = new SessionCache($table);
+        $cache->delete();
 
         return $this->executeDelete($sql, $filters);
+    }
+
+    /**
+     * Executa uma instrução DELETE completa.
+     *
+     * @param array $values  Os valores a serem utilizados na instrução DELETE.
+     * @param array $filters Os filtros para a cláusula WHERE.
+     *
+     * @throws InvalidArgumentException Se a cláusula 'table' não estiver definida.
+     *
+     * @return mixed O resultado da execução da instrução DELETE completa.
+     */
+    public function deleteFull($values, $filters = [])
+    {
+        $this->validateClause('table');
+
+        $table = $this->clauses['table'];
+        $join = $this->clauses['join'] ?? '';
+
+        $command = ['DELETE ' . $table . '.* FROM ' . $table, $join,];
+
+        $clauses = [
+            'where' => 'WHERE',
+        ];
+
+        foreach ($clauses as $key => $instruction) {
+            if (isset($this->clauses[$key])) {
+                $value = $this->clauses[$key];
+                if (is_array($value)) {
+                    $value = implode(' ', $value);
+                }
+                $command[] = $instruction . ' ' . $value;
+            }
+        }
+
+        $sql = implode(' ', array_filter($command));
+
+        $cache = new SessionCache($table);
+        $cache->delete();
+
+        return $this->executeDelete($sql, array_merge($values, $filters));
+    }
+
+    /**
+     * Valida se uma cláusula está definida.
+     *
+     * @param string $name O nome da cláusula a ser validada.
+     *
+     * @throws InvalidArgumentException Se a cláusula não estiver definida.
+     */
+    private function validateClause($name)
+    {
+        if (!isset($this->clauses[$name])) {
+            throw new InvalidArgumentException('A cláusula "' . $name . '" é obrigatória');
+        }
     }
 }

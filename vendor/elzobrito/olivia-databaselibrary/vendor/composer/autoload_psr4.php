@@ -10,4 +10,5 @@ return array(
     'OliviaDatabaseModel\\' => array($baseDir . '/model'),
     'OliviaDatabaseLibrary\\' => array($baseDir . '/src'),
     'OliviaDatabaseConfig\\' => array($baseDir . '/config'),
+    'OliviaCache\\' => array($vendorDir . '/elzobrito/olivia-cache/src'),
 );

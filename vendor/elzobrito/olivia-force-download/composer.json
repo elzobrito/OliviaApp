@@ -1,6 +1,6 @@
 {
     "name": "elzobrito/olivia-force-download",
-    "description": "force download php",
+    "description": "Componente leve para download e exibição inline de arquivos com suporte a streaming e Range Requests",
     "license": "MIT",
     "authors": [
         {
@@ -9,11 +9,14 @@
         }
     ],
     "require": {
-        "php": "^7.1"
+        "php": "^7.2.5|^8.2",
+        "ext-fileinfo": "*"
     },
     "autoload": {
         "psr-4": {
             "OliviaDownload\\": "src"
         }
-    }
+    },
+    "minimum-stability": "stable",
+    "prefer-stable": true
 }

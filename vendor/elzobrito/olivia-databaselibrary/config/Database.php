@@ -6,35 +6,24 @@ use OliviaDatabaseLibrary\ADatabase;
 
 class Database extends ADatabase
 {
-    /*
-    * Exemplo de uso do database
-    */
+    private static $databases = [
+        'mysql' => [
+            'host' => '127.0.0.1',
+            'port' => '',
+            'database' => 'obs_escolar',
+            'user' => 'root',
+            'password' => '',
+            'driver' => 'mysql',
+            'ssl' => false
+        ]
+    ];
 
-    public static function getDB($driver = null)
+    public static function getDB($name = null)
     {
-        $db = null;
-        switch ($driver) {
-            case 'mysql':
-                $db = [
-                    'host' => '',
-                    'port' => '',
-                    'database' => '',
-                    'user' => '',
-                    'password' => '',
-                    'driver' => ''
-                ];
-                break;
-            default:
-                $db = [
-                    'host' => '',
-                    'port' => '',
-                    'database' => '',
-                    'user' => '',
-                    'password' => '',
-                    'driver' => ''
-                ];
-                break;
+        if (!array_key_exists($name, self::$databases)) {
+            throw new \Exception("Banco de dados inválido");
         }
-        return $db;
+
+        return self::$databases[$name];
     }
 }

@@ -1,4 +1,5 @@
 <?php
+
 namespace OliviaDatabasePublico;
 
 use OliviaDatabaseModel\Model;
@@ -21,4 +22,19 @@ class Configuracoes extends Model
         'status',
         'created_at'
     ];
+
+    public function __construct()
+    {
+        $this->filtros['id'] = [
+            'type' => 'number',
+            'validate' => 'required',
+            'size' => '10',
+        ];
+
+        $this->filtros['parametro'] = [
+            'type' => 'string',
+            'validate' => 'required',
+            'size' => '50',
+        ];
+    }
 }

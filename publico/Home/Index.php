@@ -2,6 +2,9 @@
 
 namespace OliviaPublico\Home;
 
+use OliviaPublico\Components\Footers\SimpleFooter;
+use OliviaPublico\Components\Navigation\BrandHeader;
+use OliviaPublico\Components\Sections\HeroSection;
 use OliviaPublico\View\ViewModel;
 
 class Index extends ViewModel
@@ -16,16 +19,45 @@ class Index extends ViewModel
 
     public function navbar_menu()
     {
-        echo '<header class="mb-auto"><div><h3 class="float-md-left mb-0">Olívia</h3></div></header>';
+        $this->renderComponent(BrandHeader::class, [
+            'brand' => 'Olivia',
+            'tagline' => 'Um framework PHP enxuto, agora com composição de interface por componentes.',
+            'links' => [
+                ['label' => 'Início', 'href' => './'],
+                ['label' => 'Erro 404', 'href' => './error404'],
+            ],
+        ]);
     }
 
     public function main_footer()
     {
-        echo '<footer class="mt-auto text-white-50"><p>Cover template for <a href="https://getbootstrap.com/" class="text-white">Bootstrap</a>, by <a href="https://twitter.com/mdo" class="text-white">@mdo</a>.</p></footer>';
+        $this->renderComponent(SimpleFooter::class, [
+            'text' => 'Olivia Framework',
+            'caption' => 'Rotas, controllers, models e UI componentizada na mesma base.',
+        ]);
     }
 
     public function content()
     {
-        echo '<main class="px-3"><h1>Olívia Framework</h1><p class="lead">É uma estrutura de aplicação web com sintaxe expressiva e elegante.</p></main>';
+        $this->renderComponent(HeroSection::class, [
+            'title' => 'Framework completo usando componentes reutilizáveis.',
+            'description' => 'A camada de views agora pode ser montada por blocos independentes, facilitando a evolução de layouts, páginas internas e bibliotecas de interface dentro do Olivia.',
+            'badges' => [
+                'MVC',
+                'Router',
+                'CSRF',
+                'PSR-4',
+            ],
+            'actions' => [
+                ['label' => 'Ver rota inicial', 'href' => './', 'variant' => 'primary'],
+                ['label' => 'Testar página 404', 'href' => './error404', 'variant' => 'secondary'],
+            ],
+            'panelTitle' => 'O que entra nessa base componentizada',
+            'panelItems' => [
+                'Componente base com props para reutilização simples.',
+                'Header, hero, footer e estado de erro separados por responsabilidade.',
+                'Views mantendo a mesma convenção atual, mas renderizando componentes.',
+            ],
+        ]);
     }
 }
