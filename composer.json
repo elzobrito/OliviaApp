@@ -21,7 +21,7 @@
         "elzobrito/olivia-pagination": "^1.0",
         "elzobrito/olivia-pdf": "^1.0",
         "elzobrito/olivia-upload-file": "^1.1",
-        "elzobrito/olivia-databaselibrary": "^1.1",
+        "elzobrito/olivia-databaselibrary": "^3.6",
         "ramsey/uuid": "^4.0"
     }
 }
