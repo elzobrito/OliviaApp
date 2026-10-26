@@ -1,27 +1,28 @@
-    {
-        "name": "elzobrito/olivia-app",
-        "description": "FrameWork Olivia",
-        "authors": [
-            {
-                "name": "elzobrito",
-                "email": "elzo.filho@etec.sp.gov.br"
-            }
-        ],
-        "autoload": {
-            "psr-4": {
-                "OliviaApp\\": "app/",
-                "OliviaLib\\": "lib/",
-                "OliviaPublico\\": "publico/"
-            }
-        },
-        "require": {
-            "php": "^7.1|^8.2.4",
-            "elzobrito/olivia-force-download": "^1.0",
-            "elzobrito/olivia-router": "^2.2",
-            "elzobrito/olivia-pagination": "^1.1",
-            "elzobrito/olivia-pdf": "^1.0",
-            "elzobrito/olivia-upload-file": "^1.1",
-            "elzobrito/olivia-databaselibrary": "^3.6",
-            "ramsey/uuid": "^4.0"
+{
+    "name": "elzobrito/olivia-framework",
+    "description": "Olivia PHP framework kernel and application skeleton",
+    "license": "MIT",
+    "authors": [
+        {
+            "name": "elzobrito",
+            "email": "elzo.filho@etec.sp.gov.br"
         }
+    ],
+    "autoload": {
+        "psr-4": {
+            "OliviaApp\\": "app/",
+            "OliviaLib\\": "lib/",
+            "OliviaPublico\\": "publico/"
+        }
+    },
+    "require": {
+        "php": ">=8.2 <8.6",
+        "elzobrito/olivia-force-download": "^1.0",
+        "elzobrito/olivia-router": "^2.2",
+        "elzobrito/olivia-pagination": "^1.1",
+        "elzobrito/olivia-pdf": "^1.0",
+        "elzobrito/olivia-upload-file": "^1.1",
+        "elzobrito/olivia-databaselibrary": "^3.6",
+        "ramsey/uuid": "^4.0"
     }
+}

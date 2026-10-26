@@ -1,0 +1,64 @@
+name: Olivia Framework Quality Gate
+
+on:
+  push:
+    branches: [master, feat/olivia-framework-php85-alpine]
+  pull_request:
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: olivia-framework-quality-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  php-quality:
+    name: PHP 8.5 kernel
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Setup PHP 8.5
+        uses: shivammathur/setup-php@v2
+        with:
+          php-version: '8.5'
+          coverage: none
+
+      - name: Validate composer.json
+        run: composer validate --no-check-publish --strict
+
+      - name: Install dependencies
+        run: composer install --no-interaction --prefer-dist --no-progress
+
+      - name: Lint kernel and app
+        run: find lib app -name '*.php' -print0 | xargs -0 -n1 php -l
+
+      - name: Kernel contract
+        run: php tests/kernel/framework_contract_test.php
+
+  container-smoke:
+    name: Alpine 3.24 / PHP 8.5.12 image
+    needs: php-quality
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Build image
+        run: docker build --build-arg PHP_VERSION=8.5.12-fpm-alpine3.24 --tag olivia-framework:quality .
+
+      - name: Assert PHP 8.5.12 on Alpine 3.24
+        shell: bash
+        run: |
+          set -euo pipefail
+          container_id="$(docker run --detach olivia-framework:quality)"
+          trap 'docker rm -f "${container_id}" >/dev/null 2>&1 || true' EXIT
+          test "$(docker exec "${container_id}" php -r 'echo PHP_VERSION;')" = '8.5.12'
+          os_release="$(docker exec "${container_id}" cat /etc/os-release)"
+          grep -E '^ID=alpine$' <<<"${os_release}"
+          grep -E '^VERSION_ID="?3\.24' <<<"${os_release}"

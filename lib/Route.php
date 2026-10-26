@@ -11,13 +11,12 @@ class Route extends CommandController
     {
         $router = new Router();
 
-        //GET
         $router->get('/', 'HomeController#index');
-        //        $router->get('/login{:param}', 'HomeController#login');
+        $router->get('/livez', 'HomeController#livez');
         $router->get('/error404', 'HomeController#error404');
 
         /**
-         * TEST ROUTE 
+         * TEST ROUTE
          */
         $this->execute_action_test($router, null, 'HomeController', 'olivia');
 

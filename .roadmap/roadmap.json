@@ -1,0 +1,167 @@
+{
+  "meta": {
+    "schema_version": "0.4.1",
+    "esaa_version": "0.4.x",
+    "immutable_done": true,
+    "master_correlation_id": "CID-ESAA-INIT",
+    "run": {
+      "run_id": "RUN-0001",
+      "status": "success",
+      "last_event_seq": 44,
+      "projection_hash_sha256": "a6312a549adf751ea8f7df80f11c44faf7fa4b9733d992aa53105d12fec92cff",
+      "verify_status": "ok"
+    },
+    "updated_at": "2026-10-26T19:00:21Z"
+  },
+  "project": {
+    "name": "esaa-core",
+    "audit_scope": ".roadmap/"
+  },
+  "tasks": [
+    {
+      "task_id": "OLIVIA-FW-001",
+      "task_kind": "spec",
+      "title": "Contrato do pacote olivia-framework em PHP 8.5.12 / Alpine 3.24",
+      "description": "Especificar a extração do kernel Olivia (CommandController, Email, Config e Database genéricos) para o pacote Composer elzobrito/olivia-framework neste repositório, pinado em PHP 8.5.12 e imagem php:8.5.12-fpm-alpine3.24. Route, Config e Database específicos do Hub permanecem no ATRIO. Horus fica fora desta entrega. Acceptance: o spec declara o nome do pacote, o autoload OliviaLib, o que é kernel vs app, o runtime obrigatório e como o ATRIO consome via VCS.",
+      "status": "done",
+      "depends_on": [],
+      "targets": [
+        "lib/",
+        "composer.json"
+      ],
+      "outputs": {
+        "files": [
+          "docs/spec/olivia-framework-php85-alpine.md"
+        ]
+      },
+      "immutability": {
+        "done_is_immutable": true
+      },
+      "task_type": "feature",
+      "acceptance_criteria": [
+        "O spec nomeia elzobrito/olivia-framework, runtime php:8.5.12-fpm-alpine3.24 e Composer >=8.2 <8.6.",
+        "O spec separa kernel (CommandController, Email, Config/Database genéricos) de Route/Config/Database do Hub.",
+        "O spec descreve o consumo pelo ATRIO via repositório VCS GitHub, sem path local no CI."
+      ],
+      "required_review_mode": "docs",
+      "assigned_to": "agent-spec",
+      "started_at": "2026-10-26T18:51:45Z",
+      "verification": {
+        "checks": [
+          "spec declara elzobrito/olivia-framework, php:8.5.12-fpm-alpine3.24 e Composer >=8.2 <8.6",
+          "spec separa kernel CommandController/Email/Config/Database genericos de Route/Config/Database do Hub",
+          "spec descreve consumo ATRIO via VCS GitHub sem path local"
+        ]
+      },
+      "completed_at": "2026-10-26T18:54:43Z"
+    },
+    {
+      "task_id": "OLIVIA-FW-010",
+      "task_kind": "impl",
+      "title": "Publicar kernel Olivia como olivia-framework pinado em 8.5.12/Alpine 3.24",
+      "description": "Renomear o pacote para elzobrito/olivia-framework, pinar PHP >=8.2 <8.6, promover Config/Database genéricos (APP_DEBUG, BASE_PATH sanitizado, DSN por env), adicionar /livez, Dockerfile php:8.5.12-fpm-alpine3.24, workflow de qualidade e testes de kernel. Não copiar Route/Database/Config do Hub. Acceptance: composer validate, testes de kernel, imagem reporta PHP 8.5.12 e Alpine 3.24.",
+      "status": "done",
+      "depends_on": [
+        "OLIVIA-FW-001"
+      ],
+      "targets": [
+        "lib/",
+        "composer.json"
+      ],
+      "outputs": {
+        "files": [
+          "composer.json",
+          "composer.lock",
+          "lib/Config.php",
+          "lib/Database.php",
+          "lib/Route.php",
+          "app/Controller/HomeController.php",
+          "Dockerfile",
+          ".github/workflows/quality.yml",
+          "tests/kernel/framework_contract_test.php",
+          "README.md"
+        ]
+      },
+      "immutability": {
+        "done_is_immutable": true
+      },
+      "boundary_grant": [
+        "lib/**",
+        "app/Controller/HomeController.php",
+        "composer.json",
+        "composer.lock",
+        "Dockerfile",
+        ".github/workflows/**",
+        "README.md",
+        "index.php",
+        "tests/**"
+      ],
+      "task_type": "feature",
+      "acceptance_criteria": [
+        "composer.json name é elzobrito/olivia-framework e php >=8.2 <8.6.",
+        "Dockerfile ARG PHP_VERSION=8.5.12-fpm-alpine3.24 e smoke exige PHP 8.5.12 e ID=alpine VERSION_ID 3.24.",
+        "Teste de kernel passa e inventário local não inclui código do Hub ATRIO."
+      ],
+      "required_review_mode": "regression",
+      "assigned_to": "agent-impl",
+      "started_at": "2026-10-26T18:55:50Z",
+      "verification": {
+        "checks": [
+          "composer.json name is elzobrito/olivia-framework and php >=8.2 <8.6; composer validate --strict passed",
+          "Dockerfile ARG PHP_VERSION=8.5.12-fpm-alpine3.24; docker smoke PHP_VERSION=8.5.12 ID=alpine VERSION_ID=3.24.3",
+          "php tests/kernel/framework_contract_test.php passed; lib has no HUB_OIDC, UserSessionService or cpsrepositorio"
+        ]
+      },
+      "completed_at": "2026-10-26T18:59:10Z"
+    },
+    {
+      "task_id": "OLIVIA-FW-020",
+      "task_kind": "qa",
+      "title": "QA independente do runtime Olivia 8.5.12 / Alpine 3.24",
+      "description": "Reexecutar o contrato do kernel e o smoke da imagem php:8.5.12-fpm-alpine3.24 em revisão independente (volume somente leitura, sem rede quando possível) e registrar evidência.",
+      "status": "done",
+      "depends_on": [
+        "OLIVIA-FW-010"
+      ],
+      "targets": [
+        "tests/",
+        "Dockerfile"
+      ],
+      "outputs": {
+        "files": [
+          "docs/qa/OLIVIA-FW-020.md"
+        ]
+      },
+      "immutability": {
+        "done_is_immutable": true
+      },
+      "boundary_grant": [
+        "docs/qa/**"
+      ],
+      "task_type": "audit",
+      "acceptance_criteria": [
+        "O parecer registra PHP 8.5.12, Alpine 3.24 e o teste de kernel passando na imagem oficial."
+      ],
+      "required_review_mode": "regression",
+      "assigned_to": "agent-qa",
+      "started_at": "2026-10-26T18:59:24Z",
+      "verification": {
+        "checks": [
+          "imagem oficial php:8.5.12-fpm-alpine3.24 reportou PHP 8.5.12 ID=alpine VERSION_ID=3.24.3 sem rede",
+          "php tests/kernel/framework_contract_test.php passou na imagem oficial com volume somente leitura e sem rede"
+        ]
+      },
+      "completed_at": "2026-10-26T19:00:21Z"
+    }
+  ],
+  "indexes": {
+    "by_status": {
+      "done": 3
+    },
+    "by_kind": {
+      "impl": 1,
+      "qa": 1,
+      "spec": 1
+    }
+  }
+}
