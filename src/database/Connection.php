@@ -31,6 +31,9 @@ class Connection implements ConnectionInterface
         }
 
         $this->options = $options;
+        if ($this->isRemoteMysql() && empty($this->options['ssl'])) {
+            throw new InvalidArgumentException('Remote MySQL requires ssl=true with certificate verification.');
+        }
     }
 
     /**
@@ -55,22 +58,8 @@ class Connection implements ConnectionInterface
             while ($attempts < 3) {
                 try {
 
-                    if (isset($this->options['ssl']) && $this->options['ssl']) {
-                        $options = array(
-                            PDO::MYSQL_ATTR_INIT_COMMAND => 'SET NAMES "UTF8"',
-                            PDO::MYSQL_ATTR_SSL_VERIFY_SERVER_CERT => true,
-                        );
-
-                        $caFile = __DIR__ . DIRECTORY_SEPARATOR . 'BaltimoreCyberTrustRoot.crt.pem';
-                        if (file_exists($caFile)) {
-                            $options[PDO::MYSQL_ATTR_SSL_CA] = $caFile;
-                        }
-                    } else {
-                        $options = array(
-                            PDO::MYSQL_ATTR_INIT_COMMAND => 'SET NAMES "UTF8"',
-                            PDO::MYSQL_ATTR_SSL_VERIFY_SERVER_CERT => false,
-                        );
-                    }
+                    $driver = strtolower((string) ($this->options['driver'] ?? 'mysql'));
+                    $options = $driver === 'mysql' ? $this->mysqlClientOptions() : [];
 
                     $this->pdo = new PDO($this->dsn(), $this->options['user'], $this->options['password'], $options);
                     // set the PDO error mode
@@ -86,6 +75,43 @@ class Connection implements ConnectionInterface
             throw new PDOException("Falha ao tentar conectar ao banco de dados.");
         }
         return $this->pdo;
+    }
+
+    public function mysqlClientOptions(): array
+    {
+        $ssl = !empty($this->options['ssl']);
+        if ($this->isRemoteMysql() && !$ssl) {
+            throw new InvalidArgumentException('Remote MySQL requires ssl=true with certificate verification.');
+        }
+
+        $options = [
+            PDO::MYSQL_ATTR_INIT_COMMAND => 'SET NAMES "UTF8"',
+            PDO::MYSQL_ATTR_SSL_VERIFY_SERVER_CERT => $ssl,
+        ];
+
+        if ($ssl) {
+            $caFile = trim((string) ($this->options['ssl_ca'] ?? ''));
+            if ($caFile === '') {
+                $caFile = __DIR__ . DIRECTORY_SEPARATOR . 'BaltimoreCyberTrustRoot.crt.pem';
+            }
+            if (!is_file($caFile)) {
+                throw new InvalidArgumentException('TLS CA certificate is required when ssl=true.');
+            }
+            $options[PDO::MYSQL_ATTR_SSL_CA] = $caFile;
+        }
+
+        return $options;
+    }
+
+    private function isRemoteMysql(): bool
+    {
+        $driver = strtolower((string) ($this->options['driver'] ?? 'mysql'));
+        if ($driver !== 'mysql') {
+            return false;
+        }
+
+        $host = strtolower(trim((string) ($this->options['host'] ?? '')));
+        return $host !== '' && $host !== '127.0.0.1' && $host !== 'localhost' && $host !== '::1';
     }
 
     /**

@@ -36,30 +36,17 @@ class RouterConfig
 
     public static function fromGlobals(?array $cookies = null, ?array $session = null): self
     {
-        return self::fromContextStore(
-            new FallbackContextStore(
-                new CookieContextStore($cookies),
-                new SessionContextStore($session)
-            )
-        );
+        return self::fromContextStore(new SessionContextStore($session));
     }
 
     public static function fromRequestData(array $requestData, ?array $session = null): self
     {
-        return self::fromGlobals(
-            $requestData['COOKIE'] ?? $_COOKIE ?? [],
-            $session
-        );
+        return self::fromGlobals(null, $session);
     }
 
     public static function fromRequest(Request $request, ?array $session = null): self
     {
-        return self::fromContextStore(
-            new FallbackContextStore(
-                new CookieContextStore($request->getCookieData()),
-                new SessionContextStore($session)
-            )
-        );
+        return self::fromContextStore(new SessionContextStore($session));
     }
 
     public static function fromSession(): self

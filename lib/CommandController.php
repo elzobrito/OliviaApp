@@ -78,10 +78,6 @@ class CommandController
 
     public function view($view, $parametros = null)
     {
-        if ($_SESSION['CSRF'] == true)
-            if ($parametros != null)
-                $parametros += ['_token' => $this->csrf_token()];
-
         if ($parametros != null)
             $view = $view . '?' . http_build_query($parametros);
         header("Location: ." . DIRECTORY_SEPARATOR . $view);
@@ -89,8 +85,6 @@ class CommandController
 
     public function route($view, $parametros = null)
     {
-        if ($_SESSION['CSRF'] == true)
-            $parametros += ['_token' => $this->csrf_token()];
         return '.' . DIRECTORY_SEPARATOR . $view . ($parametros != null ? '?' . http_build_query($parametros) : '');
     }
 

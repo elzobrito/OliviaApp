@@ -47,9 +47,12 @@ class Database extends ADatabase
         }
 
         $isSqlite = $driver === 'sqlite';
+        $host = self::environment('DB_HOST', $dsnValues['host'] ?? '');
+        $isLoopback = $isSqlite || self::isLoopbackHost($host);
+        $sslDefault = !$isLoopback && $driver === 'mysql';
         $config = [
             'driver' => $driver,
-            'host' => self::environment('DB_HOST', $dsnValues['host'] ?? ''),
+            'host' => $host,
             'port' => self::environment('DB_PORT', $dsnValues['port'] ?? ''),
             'database' => self::environment(
                 'DB_DATABASE',
@@ -57,6 +60,11 @@ class Database extends ADatabase
             ),
             'user' => self::environment('DB_USERNAME', self::environment('DB_USER', '')),
             'password' => self::environment('DB_PASSWORD', ''),
+            'ssl' => self::booleanEnvironment(
+                'OLIVIA_DB_SSL',
+                self::booleanEnvironment('DB_SSL', $sslDefault)
+            ),
+            'ssl_ca' => self::environment('OLIVIA_DB_SSL_CA', self::environment('DB_SSL_CA', '')),
         ];
 
         if ($isSqlite) {
@@ -64,9 +72,33 @@ class Database extends ADatabase
             $config['port'] = '';
             $config['user'] = '';
             $config['password'] = '';
+            $config['ssl'] = false;
+            $config['ssl_ca'] = '';
         }
 
         return $config;
+    }
+
+    private static function isLoopbackHost($host): bool
+    {
+        $host = strtolower(trim((string) $host));
+        return $host === '' || $host === '127.0.0.1' || $host === 'localhost' || $host === '::1';
+    }
+
+    private static function booleanEnvironment($name, $default = false): bool
+    {
+        $value = getenv($name);
+        if ($value === false && isset($_ENV[$name])) {
+            $value = $_ENV[$name];
+        }
+        if ($value === false && isset($_SERVER[$name])) {
+            $value = $_SERVER[$name];
+        }
+        if ($value === false || $value === null || $value === '') {
+            return (bool) $default;
+        }
+
+        return filter_var($value, FILTER_VALIDATE_BOOLEAN);
     }
 
     private static function environment($name, $default = '')

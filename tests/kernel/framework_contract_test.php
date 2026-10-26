@@ -107,13 +107,14 @@ assert_true(class_exists('OliviaCache\\SessionCache'), 'OliviaCache\\SessionCach
 $routerFile = (new ReflectionClass('OliviaRouter\\Router'))->getFileName();
 assert_true(strpos($routerFile, '/src/router/Router.php') !== false, 'Router class file is in src/router');
 
-foreach (['OLIVIA_DB_DSN', 'DB_DRIVER', 'DB_HOST', 'DB_PORT', 'DB_DATABASE', 'DB_USERNAME', 'DB_USER', 'DB_PASSWORD'] as $envName) {
+foreach (['OLIVIA_DB_DSN', 'DB_DRIVER', 'DB_HOST', 'DB_PORT', 'DB_DATABASE', 'DB_USERNAME', 'DB_USER', 'DB_PASSWORD', 'OLIVIA_DB_SSL', 'DB_SSL', 'OLIVIA_DB_SSL_CA', 'DB_SSL_CA'] as $envName) {
     putenv($envName);
     unset($_ENV[$envName], $_SERVER[$envName]);
 }
 
 $empty = \OliviaLib\Database::getDB();
 assert_true($empty['driver'] === '' && $empty['host'] === '' && $empty['database'] === '', 'Database stub is empty without env');
+assert_true(array_key_exists('ssl', $empty) && $empty['ssl'] === false, 'Database stub ssl defaults false');
 
 putenv('OLIVIA_DB_DSN=mysql:host=127.0.0.1;port=3306;dbname=olivia');
 putenv('DB_USERNAME=olivia');

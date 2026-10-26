@@ -7,11 +7,11 @@
     "run": {
       "run_id": "RUN-0001",
       "status": "success",
-      "last_event_seq": 83,
-      "projection_hash_sha256": "2e3f55dcf5aab4c2cb963dbcb0234a55673223ddf8e39004d35848b968ec2c1a",
+      "last_event_seq": 122,
+      "projection_hash_sha256": "50bc566a28a25d4c9e6399e10c912dd49c4341d0cd279bfd1142b3067d75a5ad",
       "verify_status": "ok"
     },
-    "updated_at": "2026-10-26T19:16:33Z"
+    "updated_at": "2026-10-26T19:55:54Z"
   },
   "project": {
     "name": "esaa-core",
@@ -279,16 +279,148 @@
         ]
       },
       "completed_at": "2026-10-26T19:16:33Z"
+    },
+    {
+      "task_id": "OLIVIA-FW-SEC-001",
+      "task_kind": "spec",
+      "title": "Contrato de correção CSRF, middleware, token em URL e TLS MySQL",
+      "description": "Especificar as correções dos quatro achados da Security Review em 5ace265: CSRF/namespace só de sessão ou RouterConfig explícito; halt de middleware; token CSRF fora de URLs; TLS autenticado para MySQL remoto. Runtime permanece php:8.5.12-fpm-alpine3.24. Horus fora de escopo.",
+      "status": "done",
+      "depends_on": [],
+      "targets": [
+        "src/router/",
+        "lib/"
+      ],
+      "outputs": {
+        "files": [
+          "docs/spec/olivia-framework-security-review-5ace265.md"
+        ]
+      },
+      "immutability": {
+        "done_is_immutable": true
+      },
+      "task_type": "feature",
+      "acceptance_criteria": [
+        "O spec cobre os quatro achados (CSRF por cookie, halt de middleware, token em URL, TLS MySQL) com contrato de correção e testes.",
+        "O spec determina sessão/RouterConfig como única autoridade de CSRF, namespace e pastas; execute() preserva o config.",
+        "Horus permanece fora de escopo; runtime continua php:8.5.12-fpm-alpine3.24."
+      ],
+      "required_review_mode": "docs",
+      "assigned_to": "agent-spec",
+      "started_at": "2026-10-26T19:49:12Z",
+      "verification": {
+        "checks": [
+          "spec cobre CSRF por cookie, halt de middleware, token em URL e TLS MySQL com testes",
+          "spec determina sessão/RouterConfig como autoridade e execute() preserva config",
+          "Horus fora de escopo; runtime php:8.5.12-fpm-alpine3.24"
+        ]
+      },
+      "completed_at": "2026-10-26T19:49:46Z"
+    },
+    {
+      "task_id": "OLIVIA-FW-SEC-010",
+      "task_kind": "impl",
+      "title": "Corrigir CSRF, halt de middleware, token em URL e TLS MySQL",
+      "description": "Implementar o spec OLIVIA-FW-SEC-001 em src/router, lib/CommandController, lib/Database, src/database/Connection, app/Middleware/RequestPost e testes de contrato. Pin PHP e imagem inalterados. Horus fora.",
+      "status": "done",
+      "depends_on": [
+        "OLIVIA-FW-SEC-001"
+      ],
+      "targets": [
+        "src/router/",
+        "lib/"
+      ],
+      "outputs": {
+        "files": [
+          "src/router/RouterConfig.php",
+          "src/router/Router.php",
+          "src/router/RouterDispatcher.php",
+          "lib/CommandController.php",
+          "lib/Database.php",
+          "src/database/Connection.php",
+          "app/Middleware/RequestPost.php",
+          "tests/kernel/security_contract_test.php",
+          "README.md"
+        ]
+      },
+      "immutability": {
+        "done_is_immutable": true
+      },
+      "boundary_grant": [
+        "src/**",
+        "lib/**",
+        "app/Middleware/**",
+        "tests/**",
+        "README.md",
+        ".github/workflows/**",
+        "Dockerfile"
+      ],
+      "task_type": "feature",
+      "acceptance_criteria": [
+        "Cookies adversários não desligam CSRF nem trocam namespace/token; POST sem token válido é bloqueado.",
+        "Middleware que nega (false ou MiddlewareHaltException) impede o handler; view()/route() não incluem _token; MySQL remoto exige ssl+CA.",
+        "security_contract_test.php e framework_contract_test.php passam; imagem continua php:8.5.12-fpm-alpine3.24."
+      ],
+      "required_review_mode": "security",
+      "assigned_to": "agent-impl",
+      "started_at": "2026-10-26T19:49:46Z",
+      "verification": {
+        "checks": [
+          "php tests/kernel/framework_contract_test.php: framework contract passed",
+          "php tests/kernel/security_contract_test.php: cookies do not disable CSRF; POST without valid token is blocked; middleware false/halt skips handler; route() has no _token; remote MySQL requires ssl+CA",
+          "Dockerfile remains php:8.5.12-fpm-alpine3.24; COMPOSER_ROOT_VERSION=0.2.1; quality.yml runs security_contract_test.php"
+        ]
+      },
+      "completed_at": "2026-10-26T19:53:57Z"
+    },
+    {
+      "task_id": "OLIVIA-FW-SEC-020",
+      "task_kind": "qa",
+      "title": "QA das correções de segurança no runtime 8.5.12 / Alpine 3.24",
+      "description": "Reexecutar framework_contract_test.php e security_contract_test.php na imagem oficial php:8.5.12-fpm-alpine3.24, volume somente leitura, sem rede quando possível.",
+      "status": "done",
+      "depends_on": [
+        "OLIVIA-FW-SEC-010"
+      ],
+      "targets": [
+        "tests/"
+      ],
+      "outputs": {
+        "files": [
+          "docs/qa/OLIVIA-FW-SEC-020.md"
+        ]
+      },
+      "immutability": {
+        "done_is_immutable": true
+      },
+      "boundary_grant": [
+        "docs/qa/**"
+      ],
+      "task_type": "audit",
+      "acceptance_criteria": [
+        "O parecer registra PHP 8.5.12, Alpine 3.24 e os dois testes de kernel passando na imagem oficial."
+      ],
+      "required_review_mode": "security",
+      "assigned_to": "agent-qa",
+      "started_at": "2026-10-26T19:54:09Z",
+      "verification": {
+        "checks": [
+          "docker php:8.5.12-fpm-alpine3.24: PHP 8.5.12, ID=alpine, VERSION_ID=3.24.3",
+          "framework_contract_test.php passed on official image, volume RO, --network none",
+          "security_contract_test.php passed on official image + pdo_mysql, volume RO, --network none"
+        ]
+      },
+      "completed_at": "2026-10-26T19:55:54Z"
     }
   ],
   "indexes": {
     "by_status": {
-      "done": 6
+      "done": 9
     },
     "by_kind": {
-      "impl": 2,
-      "qa": 2,
-      "spec": 2
+      "impl": 3,
+      "qa": 3,
+      "spec": 3
     }
   }
 }

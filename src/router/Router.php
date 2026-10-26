@@ -81,14 +81,6 @@ class Router
 
     private function resolveConfigForExecution($requestData): RouterConfig
     {
-        if ($requestData instanceof Request) {
-            return RouterConfig::fromRequest($requestData);
-        }
-
-        if (is_array($requestData)) {
-            return RouterConfig::fromRequestData($requestData);
-        }
-
         return $this->config;
     }
 

@@ -40,6 +40,9 @@ jobs:
       - name: Kernel contract
         run: php tests/kernel/framework_contract_test.php
 
+      - name: Security contract
+        run: php tests/kernel/security_contract_test.php
+
   container-smoke:
     name: Alpine 3.24 / PHP 8.5.12 image
     needs: php-quality

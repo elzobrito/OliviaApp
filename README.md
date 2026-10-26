@@ -133,6 +133,7 @@ Também existem rotas auxiliares montadas dinamicamente para testes com prefixo 
 ```bash
 composer validate --no-check-publish --strict
 php tests/kernel/framework_contract_test.php
+php tests/kernel/security_contract_test.php
 docker build --build-arg PHP_VERSION=8.5.12-fpm-alpine3.24 --tag olivia-framework:smoke .
 ```
 
@@ -157,7 +158,7 @@ Componentes disponíveis nesta base:
 
 ## Segurança
 
-O projeto inicializa proteção CSRF na configuração base e armazena o token em sessão (`lib/Config.php`). Cookies de sessão usam `httponly` e `secure`. `display_errors` só liga com `APP_DEBUG=true`.
+O projeto inicializa proteção CSRF na configuração base e armazena o token em sessão (`lib/Config.php`). O roteador lê CSRF, namespace e pastas **somente da sessão** (ou de um `RouterConfig` explícito); cookies `OLIVIA_*` não desligam CSRF. `csrf_field()` coloca o token em formulários POST; `view()`/`route()` não o colocam na URL. Middleware que retorna `false` ou lança `OliviaRouter\MiddlewareHaltException` encerra o despacho. MySQL em host não-loopback exige `ssl=true` e CA (`OLIVIA_DB_SSL` / `DB_SSL`). Cookies de sessão usam `httponly` e `secure`. `display_errors` só liga com `APP_DEBUG=true`.
 
 Se você descobrir uma vulnerabilidade de segurança no framework, entre em contato com Elzo Brito pelo e-mail `elzo.santos@cps.sp.gov.br`.
 

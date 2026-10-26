@@ -41,7 +41,11 @@ class RouterDispatcher
                 continue;
             }
 
-            $this->executeMiddlewares($route->getMiddleware());
+            if ($this->executeMiddlewares($route->getMiddleware()) === false) {
+                $this->matched = true;
+                $this->publishNotFoundState(false);
+                return;
+            }
             $this->validateCsrf($route, $request);
             $this->executeHandler($route->getControllerMethod(), $route->getParams(), $request);
 
@@ -68,10 +72,10 @@ class RouterDispatcher
         return $this->matched;
     }
 
-    private function executeMiddlewares($middlewares): void
+    private function executeMiddlewares($middlewares): bool
     {
         if ($middlewares === null) {
-            return;
+            return true;
         }
 
         $middlewares = is_array($middlewares) ? $middlewares : [$middlewares];
@@ -87,8 +91,18 @@ class RouterDispatcher
                 );
             }
 
-            $middlewareInstance->{$callMiddleware['action']}();
+            try {
+                $result = $middlewareInstance->{$callMiddleware['action']}();
+            } catch (MiddlewareHaltException $exception) {
+                return false;
+            }
+
+            if ($result === false) {
+                return false;
+            }
         }
+
+        return true;
     }
 
     private function executeHandler(string $handler, array $params, Request $request): void
