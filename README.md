@@ -5,7 +5,7 @@ Olivia é um framework PHP para aplicações web com organização em MVC, rotea
 Pacote Composer: `elzobrito/olivia-framework`  
 Repositório: https://github.com/elzobrito/OliviaApp
 
-Este repositório publica o kernel (`OliviaLib\\` em `lib/`) e o skeleton de aplicação. O Hub ATRIO consome o kernel via VCS GitHub e mantém as classes Hub (`Config`, `Database`, `Route`) no próprio aplicativo.
+Este repositório publica o kernel (`OliviaLib\\` em `lib/`), as libs Olivia in-tree (`src/`) e o skeleton de aplicação. Um único pin de PHP cobre o kernel e as libs. O Hub ATRIO consome o pacote e mantém as classes Hub (`Config`, `Database`, `Route`) no próprio aplicativo.
 
 ## Requisitos
 
@@ -36,22 +36,34 @@ O CI de consumidores não vê um path local. Use o repositório VCS:
     }
   ],
   "require": {
-    "elzobrito/olivia-framework": "dev-feat/olivia-framework-php85-alpine as 0.1.0"
+    "elzobrito/olivia-framework": "0.2.0"
   }
 }
 ```
 
-Prefixo publicado: `OliviaLib\\` → `lib/`. Classes do aplicativo consumidor com o mesmo prefixo vencem no autoload do Composer.
+O driver VCS do GitHub ainda identifica este repositório pelo `name` em `master` (`elzobrito/olivia-app`). Consumidores CI usam `type: package` apontando para o SHA da branch, sem path local.
+
+Prefixos publicados: `OliviaLib\\` → `lib/` e os namespaces in-tree (`OliviaRouter\\`, `OliviaDatabaseLibrary\\`, etc.). Classes do aplicativo consumidor com o mesmo prefixo vencem no autoload do Composer. O pacote `replace` as libs `elzobrito/olivia-*` antigas.
 
 ## Kernel vs Hub
 
-Kernel neste pacote:
+Kernel neste pacote (`lib/`):
 
 - `OliviaLib\CommandController`
 - `OliviaLib\Email`
 - `OliviaLib\Config` (genérico: `APP_DEBUG`, sanitização de `BASE_PATH`)
 - `OliviaLib\Database` (DSN via `OLIVIA_DB_DSN` / `DB_*`; sem `HUB_OIDC_DB_DSN`)
 - `OliviaLib\Route` (rotas do skeleton, incluindo `/livez`)
+
+Libs in-tree (`src/`), pinadas no mesmo PHP `>=8.2 <8.6`:
+
+- `OliviaRouter\\` (router 2.4, SHA `27a3f81`)
+- `OliviaPagination\\`
+- `Oliviapdf\\`
+- `OliviaUpload\\`
+- `OliviaDownload\\`
+- `OliviaDatabaseLibrary\\` / `OliviaDatabaseModel\\` / `OliviaDatabaseConfig\\`
+- `OliviaCache\\`
 
 Permanecem no ATRIO: `Config`, `Database` e `Route` do Hub.
 
@@ -69,6 +81,14 @@ OliviaApp/
 |   |-- Database.php
 |   |-- Email.php
 |   `-- Route.php
+|-- src/
+|   |-- router/
+|   |-- pagination/
+|   |-- pdf/
+|   |-- upload/
+|   |-- download/
+|   |-- database/
+|   `-- cache/
 |-- publico/
 |   |-- Components/
 |   |-- Home/
@@ -143,12 +163,10 @@ Se você descobrir uma vulnerabilidade de segurança no framework, entre em cont
 
 ## Dependências principais
 
-- `elzobrito/olivia-router`
-- `elzobrito/olivia-databaselibrary`
-- `elzobrito/olivia-pagination`
-- `elzobrito/olivia-pdf`
-- `elzobrito/olivia-force-download`
+Libs Olivia estão in-tree em `src/` (não são mais pacotes Composer separados). Terceiros:
+
 - `ramsey/uuid`
+- `fpdf/fpdf`
 
 ## Licença
 

@@ -1,6 +1,6 @@
 {
     "name": "elzobrito/olivia-framework",
-    "description": "Olivia PHP framework kernel and application skeleton",
+    "description": "Olivia PHP framework kernel, in-tree libraries and application skeleton",
     "license": "MIT",
     "authors": [
         {
@@ -12,17 +12,32 @@
         "psr-4": {
             "OliviaApp\\": "app/",
             "OliviaLib\\": "lib/",
-            "OliviaPublico\\": "publico/"
+            "OliviaPublico\\": "publico/",
+            "OliviaRouter\\": "src/router/",
+            "OliviaPagination\\": "src/pagination/",
+            "Oliviapdf\\": "src/pdf/",
+            "OliviaUpload\\": "src/upload/",
+            "OliviaDownload\\": "src/download/",
+            "OliviaDatabaseLibrary\\": "src/database/",
+            "OliviaDatabaseModel\\": "src/database-model/",
+            "OliviaDatabaseConfig\\": "src/database-config/",
+            "OliviaCache\\": "src/cache/"
         }
     },
     "require": {
         "php": ">=8.2 <8.6",
-        "elzobrito/olivia-force-download": "^1.0",
-        "elzobrito/olivia-router": "^2.2",
-        "elzobrito/olivia-pagination": "^1.1",
-        "elzobrito/olivia-pdf": "^1.0",
-        "elzobrito/olivia-upload-file": "^1.1",
-        "elzobrito/olivia-databaselibrary": "^3.6",
+        "ext-fileinfo": "*",
+        "ext-pdo": "*",
+        "fpdf/fpdf": "^1.82",
         "ramsey/uuid": "^4.0"
+    },
+    "replace": {
+        "elzobrito/olivia-cache": "*",
+        "elzobrito/olivia-databaselibrary": "*",
+        "elzobrito/olivia-force-download": "*",
+        "elzobrito/olivia-pagination": "*",
+        "elzobrito/olivia-pdf": "*",
+        "elzobrito/olivia-router": "*",
+        "elzobrito/olivia-upload-file": "*"
     }
 }

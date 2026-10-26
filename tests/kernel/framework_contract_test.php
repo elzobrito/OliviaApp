@@ -22,6 +22,35 @@ assert_true(($composer['name'] ?? '') === 'elzobrito/olivia-framework', 'package
 assert_true(($composer['require']['php'] ?? '') === '>=8.2 <8.6', 'php constraint is >=8.2 <8.6');
 assert_true(($composer['autoload']['psr-4']['OliviaLib\\'] ?? '') === 'lib/', 'OliviaLib autoload maps to lib/');
 
+$elzobritoRequires = array_filter(
+    array_keys($composer['require'] ?? []),
+    static fn($name) => strpos($name, 'elzobrito/olivia-') === 0
+);
+assert_true($elzobritoRequires === [], 'require has no elzobrito/olivia-* packages');
+assert_true(($composer['require']['ramsey/uuid'] ?? '') !== '', 'ramsey/uuid remains a third-party require');
+assert_true(($composer['require']['fpdf/fpdf'] ?? '') !== '', 'fpdf/fpdf remains a third-party require');
+
+$replaced = [
+    'elzobrito/olivia-router',
+    'elzobrito/olivia-pagination',
+    'elzobrito/olivia-pdf',
+    'elzobrito/olivia-upload-file',
+    'elzobrito/olivia-force-download',
+    'elzobrito/olivia-databaselibrary',
+    'elzobrito/olivia-cache',
+];
+foreach ($replaced as $packageName) {
+    assert_true(isset($composer['replace'][$packageName]), "replace covers {$packageName}");
+}
+
+$psr4 = $composer['autoload']['psr-4'] ?? [];
+assert_true(($psr4['OliviaRouter\\'] ?? '') === 'src/router/', 'OliviaRouter maps to src/router/');
+assert_true(($psr4['OliviaDatabaseLibrary\\'] ?? '') === 'src/database/', 'OliviaDatabaseLibrary maps to src/database/');
+assert_true(is_file($root . '/src/router/ContextStoreInterface.php'), 'in-tree router is 2.4 (ContextStoreInterface)');
+assert_true(is_file($root . '/src/download/Download.php'), 'in-tree force-download exists');
+assert_true(is_file($root . '/src/database/ADatabase.php'), 'in-tree databaselibrary exists');
+assert_true(is_file($root . '/src/cache/SessionCache.php'), 'in-tree cache exists');
+
 foreach (['CommandController.php', 'Email.php', 'Config.php', 'Database.php', 'Route.php'] as $kernelFile) {
     $path = $root . '/lib/' . $kernelFile;
     $source = is_file($path) ? (string) file_get_contents($path) : '';
@@ -49,24 +78,34 @@ assert_true(strpos($route, "/livez") !== false, 'Route registers /livez');
 $home = (string) file_get_contents($root . '/app/Controller/HomeController.php');
 assert_true(strpos($home, 'function livez') !== false, 'HomeController implements livez');
 
-$libIterator = new RecursiveIteratorIterator(
-    new RecursiveDirectoryIterator($root . '/lib', FilesystemIterator::SKIP_DOTS)
-);
 $forbidden = ['HUB_OIDC', 'UserSessionService', 'cpsrepositorio'];
-foreach ($libIterator as $file) {
-    if ($file->getExtension() !== 'php') {
-        continue;
-    }
-    $contents = (string) file_get_contents($file->getPathname());
-    foreach ($forbidden as $needle) {
-        assert_true(
-            strpos($contents, $needle) === false,
-            basename($file->getPathname()) . " has no {$needle}"
-        );
+foreach (['lib', 'src'] as $tree) {
+    $iterator = new RecursiveIteratorIterator(
+        new RecursiveDirectoryIterator($root . '/' . $tree, FilesystemIterator::SKIP_DOTS)
+    );
+    foreach ($iterator as $file) {
+        if ($file->getExtension() !== 'php') {
+            continue;
+        }
+        $contents = (string) file_get_contents($file->getPathname());
+        foreach ($forbidden as $needle) {
+            assert_true(
+                strpos($contents, $needle) === false,
+                $tree . '/' . basename($file->getPathname()) . " has no {$needle}"
+            );
+        }
     }
 }
 
 require $root . '/vendor/autoload.php';
+
+assert_true(class_exists('OliviaRouter\\Router'), 'OliviaRouter\\Router autoloads from src/');
+assert_true(interface_exists('OliviaRouter\\ContextStoreInterface'), 'OliviaRouter\\ContextStoreInterface autoloads');
+assert_true(class_exists('OliviaDownload\\Download'), 'OliviaDownload\\Download autoloads from src/');
+assert_true(class_exists('OliviaDatabaseLibrary\\ADatabase'), 'OliviaDatabaseLibrary\\ADatabase autoloads from src/');
+assert_true(class_exists('OliviaCache\\SessionCache'), 'OliviaCache\\SessionCache autoloads from src/');
+$routerFile = (new ReflectionClass('OliviaRouter\\Router'))->getFileName();
+assert_true(strpos($routerFile, '/src/router/Router.php') !== false, 'Router class file is in src/router');
 
 foreach (['OLIVIA_DB_DSN', 'DB_DRIVER', 'DB_HOST', 'DB_PORT', 'DB_DATABASE', 'DB_USERNAME', 'DB_USER', 'DB_PASSWORD'] as $envName) {
     putenv($envName);

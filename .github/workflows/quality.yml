@@ -34,8 +34,8 @@ jobs:
       - name: Install dependencies
         run: composer install --no-interaction --prefer-dist --no-progress
 
-      - name: Lint kernel and app
-        run: find lib app -name '*.php' -print0 | xargs -0 -n1 php -l
+      - name: Lint kernel, in-tree libs and app
+        run: find lib src app -name '*.php' -print0 | xargs -0 -n1 php -l
 
       - name: Kernel contract
         run: php tests/kernel/framework_contract_test.php

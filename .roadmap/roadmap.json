@@ -7,11 +7,11 @@
     "run": {
       "run_id": "RUN-0001",
       "status": "success",
-      "last_event_seq": 44,
-      "projection_hash_sha256": "a6312a549adf751ea8f7df80f11c44faf7fa4b9733d992aa53105d12fec92cff",
+      "last_event_seq": 83,
+      "projection_hash_sha256": "2e3f55dcf5aab4c2cb963dbcb0234a55673223ddf8e39004d35848b968ec2c1a",
       "verify_status": "ok"
     },
-    "updated_at": "2026-10-26T19:00:21Z"
+    "updated_at": "2026-10-26T19:16:33Z"
   },
   "project": {
     "name": "esaa-core",
@@ -152,16 +152,143 @@
         ]
       },
       "completed_at": "2026-10-26T19:00:21Z"
+    },
+    {
+      "task_id": "OLIVIA-FW-030",
+      "task_kind": "spec",
+      "title": "Incorporar libs Olivia no framework com pin PHP único",
+      "description": "Especificar a incorporação in-tree de olivia-router, pagination, pdf, upload-file, force-download, databaselibrary e cache no pacote elzobrito/olivia-framework, com PHP >=8.2 <8.6 e runtime php:8.5.12-fpm-alpine3.24. Composer replace cobre os nomes antigos. Router in-tree é o 2.4 do ATRIO (27a3f81). fpdf e ramsey/uuid permanecem dependências de terceiros. Horus fora de escopo.",
+      "status": "done",
+      "depends_on": [],
+      "targets": [
+        "composer.json"
+      ],
+      "outputs": {
+        "files": [
+          "docs/spec/olivia-framework-in-tree-libs.md"
+        ]
+      },
+      "immutability": {
+        "done_is_immutable": true
+      },
+      "task_type": "feature",
+      "acceptance_criteria": [
+        "O spec lista as sete libs incorporadas, o pin PHP >=8.2 <8.6, o replace Composer e que fpdf/ramsey permanecem externos.",
+        "O spec determina o router in-tree como SHA 27a3f81 (ATRIO 2.4), não o 2.3 do vendor antigo do OliviaApp.",
+        "O spec descreve o consumo ATRIO sem require das libs antigas e sem path local."
+      ],
+      "required_review_mode": "docs",
+      "assigned_to": "agent-spec",
+      "started_at": "2026-10-26T19:12:58Z",
+      "verification": {
+        "checks": [
+          "spec lista sete libs, PHP >=8.2 <8.6, replace Composer e fpdf/ramsey externos",
+          "spec fixa router in-tree SHA 27a3f81 ATRIO 2.4",
+          "spec descreve consumo ATRIO sem require das libs antigas e sem path local"
+        ]
+      },
+      "completed_at": "2026-10-26T19:13:41Z"
+    },
+    {
+      "task_id": "OLIVIA-FW-040",
+      "task_kind": "impl",
+      "title": "Vendor in-tree das libs Olivia sob src/ com replace Composer",
+      "description": "Copiar as fontes para src/, atualizar autoload e replace, remover require das libs elzobrito, manter ramsey/uuid e fpdf/fpdf, atualizar Dockerfile/CI/teste de kernel. Router vem do ATRIO 27a3f81.",
+      "status": "done",
+      "depends_on": [
+        "OLIVIA-FW-030"
+      ],
+      "targets": [
+        "src/",
+        "composer.json"
+      ],
+      "outputs": {
+        "files": [
+          "composer.json",
+          "composer.lock",
+          "Dockerfile",
+          ".github/workflows/quality.yml",
+          "tests/kernel/framework_contract_test.php",
+          "README.md"
+        ]
+      },
+      "immutability": {
+        "done_is_immutable": true
+      },
+      "boundary_grant": [
+        "src/**",
+        "composer.json",
+        "composer.lock",
+        "Dockerfile",
+        ".github/workflows/**",
+        "README.md",
+        "tests/**"
+      ],
+      "task_type": "feature",
+      "acceptance_criteria": [
+        "composer.json não requer mais pacotes elzobrito/olivia-* e declara replace para router, pagination, pdf, upload-file, force-download, databaselibrary e cache.",
+        "PHP permanece >=8.2 <8.6 e a imagem continua php:8.5.12-fpm-alpine3.24.",
+        "src/ contém OliviaRouter com ContextStoreInterface (router 2.4) e o teste de kernel passa."
+      ],
+      "required_review_mode": "regression",
+      "assigned_to": "agent-impl",
+      "started_at": "2026-10-26T19:13:42Z",
+      "verification": {
+        "checks": [
+          "composer.json has no elzobrito/olivia-* require and replace covers seven libs; ramsey/uuid and fpdf/fpdf remain",
+          "PHP >=8.2 <8.6; docker image php:8.5.12-fpm-alpine3.24 reports PHP 8.5.12 ID=alpine VERSION_ID=3.24.3",
+          "src/router/ContextStoreInterface.php present; kernel contract passed; Router autoloads from src/router"
+        ]
+      },
+      "completed_at": "2026-10-26T19:16:09Z"
+    },
+    {
+      "task_id": "OLIVIA-FW-050",
+      "task_kind": "qa",
+      "title": "QA da incorporação in-tree no runtime 8.5.12 / Alpine 3.24",
+      "description": "Reexecutar contrato do kernel e smoke da imagem oficial php:8.5.12-fpm-alpine3.24 após a incorporação das libs, volume somente leitura, sem rede quando possível.",
+      "status": "done",
+      "depends_on": [
+        "OLIVIA-FW-040"
+      ],
+      "targets": [
+        "tests/"
+      ],
+      "outputs": {
+        "files": [
+          "docs/qa/OLIVIA-FW-050.md"
+        ]
+      },
+      "immutability": {
+        "done_is_immutable": true
+      },
+      "boundary_grant": [
+        "docs/qa/**"
+      ],
+      "task_type": "audit",
+      "acceptance_criteria": [
+        "O parecer registra PHP 8.5.12, Alpine 3.24, replace das sete libs e teste de kernel passando na imagem oficial."
+      ],
+      "required_review_mode": "regression",
+      "assigned_to": "agent-qa",
+      "started_at": "2026-10-26T19:16:09Z",
+      "verification": {
+        "checks": [
+          "imagem oficial php:8.5.12-fpm-alpine3.24 reportou PHP 8.5.12 ID=alpine VERSION_ID=3.24.3 sem rede",
+          "kernel contract passou na imagem oficial com volume RO; replace das sete libs confirmado"
+        ]
+      },
+      "completed_at": "2026-10-26T19:16:33Z"
     }
   ],
   "indexes": {
     "by_status": {
-      "done": 3
+      "done": 6
     },
     "by_kind": {
-      "impl": 1,
-      "qa": 1,
-      "spec": 1
+      "impl": 2,
+      "qa": 2,
+      "spec": 2
     }
   }
 }

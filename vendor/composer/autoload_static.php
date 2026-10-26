@@ -11,12 +11,12 @@ class ComposerStaticInit54aa441173212cda65bdbcd1c8f2dffa
     );
 
     public static $prefixLengthsPsr4 = array (
-        'R' => 
+        'R' =>
         array (
             'Ramsey\\Uuid\\' => 12,
             'Ramsey\\Collection\\' => 18,
         ),
-        'O' => 
+        'O' =>
         array (
             'Oliviapdf\\' => 10,
             'OliviaUpload\\' => 13,
@@ -25,89 +25,84 @@ class ComposerStaticInit54aa441173212cda65bdbcd1c8f2dffa
             'OliviaPagination\\' => 17,
             'OliviaLib\\' => 10,
             'OliviaDownload\\' => 15,
-            'OliviaDatabasePublico\\' => 22,
             'OliviaDatabaseModel\\' => 20,
             'OliviaDatabaseLibrary\\' => 22,
             'OliviaDatabaseConfig\\' => 21,
             'OliviaCache\\' => 12,
             'OliviaApp\\' => 10,
         ),
-        'F' => 
+        'F' =>
         array (
             'Fpdf\\' => 5,
         ),
-        'B' => 
+        'B' =>
         array (
             'Brick\\Math\\' => 11,
         ),
     );
 
     public static $prefixDirsPsr4 = array (
-        'Ramsey\\Uuid\\' => 
+        'Ramsey\\Uuid\\' =>
         array (
             0 => __DIR__ . '/..' . '/ramsey/uuid/src',
         ),
-        'Ramsey\\Collection\\' => 
+        'Ramsey\\Collection\\' =>
         array (
             0 => __DIR__ . '/..' . '/ramsey/collection/src',
         ),
-        'Oliviapdf\\' => 
+        'Oliviapdf\\' =>
         array (
-            0 => __DIR__ . '/..' . '/elzobrito/olivia-pdf/src',
+            0 => __DIR__ . '/../..' . '/src/pdf',
         ),
-        'OliviaUpload\\' => 
+        'OliviaUpload\\' =>
         array (
-            0 => __DIR__ . '/..' . '/elzobrito/olivia-upload-file/src',
+            0 => __DIR__ . '/../..' . '/src/upload',
         ),
-        'OliviaRouter\\' => 
+        'OliviaRouter\\' =>
         array (
-            0 => __DIR__ . '/..' . '/elzobrito/olivia-router/src',
+            0 => __DIR__ . '/../..' . '/src/router',
         ),
-        'OliviaPublico\\' => 
+        'OliviaPublico\\' =>
         array (
             0 => __DIR__ . '/../..' . '/publico',
         ),
-        'OliviaPagination\\' => 
+        'OliviaPagination\\' =>
         array (
-            0 => __DIR__ . '/..' . '/elzobrito/olivia-pagination/src',
+            0 => __DIR__ . '/../..' . '/src/pagination',
         ),
-        'OliviaLib\\' => 
+        'OliviaLib\\' =>
         array (
             0 => __DIR__ . '/../..' . '/lib',
         ),
-        'OliviaDownload\\' => 
+        'OliviaDownload\\' =>
         array (
-            0 => __DIR__ . '/..' . '/elzobrito/olivia-force-download/src',
+            0 => __DIR__ . '/../..' . '/src/download',
         ),
-        'OliviaDatabasePublico\\' => 
+        'OliviaDatabaseModel\\' =>
         array (
-            0 => __DIR__ . '/..' . '/elzobrito/olivia-databaselibrary/public_html',
+            0 => __DIR__ . '/../..' . '/src/database-model',
         ),
-        'OliviaDatabaseModel\\' => 
+        'OliviaDatabaseLibrary\\' =>
         array (
-            0 => __DIR__ . '/..' . '/elzobrito/olivia-databaselibrary/model',
+            0 => __DIR__ . '/../..' . '/src/database',
         ),
-        'OliviaDatabaseLibrary\\' => 
+        'OliviaDatabaseConfig\\' =>
         array (
-            0 => __DIR__ . '/..' . '/elzobrito/olivia-databaselibrary/src',
+            0 => __DIR__ . '/../..' . '/src/database-config',
         ),
-        'OliviaDatabaseConfig\\' => 
+        'OliviaCache\\' =>
         array (
-            0 => __DIR__ . '/..' . '/elzobrito/olivia-databaselibrary/config',
+            0 => __DIR__ . '/../..' . '/src/cache',
         ),
-        'OliviaCache\\' => 
-        array (
-            0 => __DIR__ . '/..' . '/elzobrito/olivia-cache/src',
-        ),
-        'OliviaApp\\' => 
+        'OliviaApp\\' =>
         array (
             0 => __DIR__ . '/../..' . '/app',
         ),
-        'Fpdf\\' => 
+        'Fpdf\\' =>
         array (
             0 => __DIR__ . '/..' . '/fpdf/fpdf/src/Fpdf',
         ),
-        'Brick\\Math\\' => 
+        'Brick\\Math\\' =>
         array (
             0 => __DIR__ . '/..' . '/brick/math/src',
         ),
