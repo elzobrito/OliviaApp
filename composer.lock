@@ -4,28 +4,28 @@
         "Read more about it at https://getcomposer.org/doc/01-basic-usage.md#installing-dependencies",
         "This file is @generated automatically"
     ],
-    "content-hash": "0650e3c428499ea645ca6ca3ff3b0c44",
+    "content-hash": "63cbf8f9eac888b1779d198c98ad0b8c",
     "packages": [
         {
             "name": "brick/math",
-            "version": "0.14.8",
+            "version": "1.0.0",
             "source": {
                 "type": "git",
                 "url": "https://github.com/brick/math.git",
-                "reference": "63422359a44b7f06cae63c3b429b59e8efcc0629"
+                "reference": "2effe05d2177c451b86c6a073196a4034c02f211"
             },
             "dist": {
                 "type": "zip",
-                "url": "https://api.github.com/repos/brick/math/zipball/63422359a44b7f06cae63c3b429b59e8efcc0629",
-                "reference": "63422359a44b7f06cae63c3b429b59e8efcc0629",
+                "url": "https://api.github.com/repos/brick/math/zipball/2effe05d2177c451b86c6a073196a4034c02f211",
+                "reference": "2effe05d2177c451b86c6a073196a4034c02f211",
                 "shasum": ""
             },
             "require": {
                 "php": "^8.2"
             },
             "require-dev": {
-                "php-coveralls/php-coveralls": "^2.2",
-                "phpstan/phpstan": "2.1.22",
+                "phpstan/phpstan": "2.2.13",
+                "phpstan/phpstan-phpunit": "2.0.18",
                 "phpunit/phpunit": "^11.5"
             },
             "type": "library",
@@ -56,7 +56,7 @@
             ],
             "support": {
                 "issues": "https://github.com/brick/math/issues",
-                "source": "https://github.com/brick/math/tree/0.14.8"
+                "source": "https://github.com/brick/math/tree/1.0.0"
             },
             "funding": [
                 {
@@ -64,311 +64,20 @@
                     "type": "github"
                 }
             ],
-            "time": "2026-02-10T14:33:43+00:00"
-        },
-        {
-            "name": "elzobrito/olivia-cache",
-            "version": "1.0",
-            "source": {
-                "type": "git",
-                "url": "https://github.com/elzobrito/OliviaCache.git",
-                "reference": "ed6830c335468665495887ab5e42f13e2411ae41"
-            },
-            "dist": {
-                "type": "zip",
-                "url": "https://api.github.com/repos/elzobrito/OliviaCache/zipball/ed6830c335468665495887ab5e42f13e2411ae41",
-                "reference": "ed6830c335468665495887ab5e42f13e2411ae41",
-                "shasum": ""
-            },
-            "require": {
-                "php": "^7.2.5|^8.0"
-            },
-            "type": "library",
-            "autoload": {
-                "psr-4": {
-                    "OliviaCache\\": "src/"
-                }
-            },
-            "notification-url": "https://packagist.org/downloads/",
-            "authors": [
-                {
-                    "name": "elzobrito",
-                    "email": "elzo.filho@etec.sp.gov.br"
-                }
-            ],
-            "description": "Cache Olivia",
-            "support": {
-                "issues": "https://github.com/elzobrito/OliviaCache/issues",
-                "source": "https://github.com/elzobrito/OliviaCache/tree/1.0"
-            },
-            "time": "2023-06-07T18:19:50+00:00"
-        },
-        {
-            "name": "elzobrito/olivia-databaselibrary",
-            "version": "3.6",
-            "source": {
-                "type": "git",
-                "url": "https://github.com/elzobrito/Oliviadatabaselibrary.git",
-                "reference": "29009cfeba9620ee4c01e485916643db6f4af59f"
-            },
-            "dist": {
-                "type": "zip",
-                "url": "https://api.github.com/repos/elzobrito/Oliviadatabaselibrary/zipball/29009cfeba9620ee4c01e485916643db6f4af59f",
-                "reference": "29009cfeba9620ee4c01e485916643db6f4af59f",
-                "shasum": ""
-            },
-            "require": {
-                "elzobrito/olivia-cache": "^1.0",
-                "php": "^7.1|^8.2.4"
-            },
-            "type": "library",
-            "autoload": {
-                "psr-4": {
-                    "OliviaDatabaseModel\\": "model",
-                    "OliviaDatabaseConfig\\": "config",
-                    "OliviaDatabaseLibrary\\": "src",
-                    "OliviaDatabasePublico\\": "public_html"
-                }
-            },
-            "notification-url": "https://packagist.org/downloads/",
-            "license": [
-                "MIT"
-            ],
-            "authors": [
-                {
-                    "name": "Elzo Brito dos Santos Filho",
-                    "email": "elzo.filho@etec.sp.gov.br"
-                }
-            ],
-            "support": {
-                "issues": "https://github.com/elzobrito/Oliviadatabaselibrary/issues",
-                "source": "https://github.com/elzobrito/Oliviadatabaselibrary/tree/3.6"
-            },
-            "time": "2023-08-09T03:18:17+00:00"
-        },
-        {
-            "name": "elzobrito/olivia-force-download",
-            "version": "1.2",
-            "source": {
-                "type": "git",
-                "url": "https://github.com/elzobrito/OliviaForceDownload.git",
-                "reference": "8abc55e2b32e318d13f5548e02b76897c8ded2bd"
-            },
-            "dist": {
-                "type": "zip",
-                "url": "https://api.github.com/repos/elzobrito/OliviaForceDownload/zipball/8abc55e2b32e318d13f5548e02b76897c8ded2bd",
-                "reference": "8abc55e2b32e318d13f5548e02b76897c8ded2bd",
-                "shasum": ""
-            },
-            "require": {
-                "ext-fileinfo": "*",
-                "php": "^7.2.5|^8.2"
-            },
-            "type": "library",
-            "autoload": {
-                "psr-4": {
-                    "OliviaDownload\\": "src"
-                }
-            },
-            "notification-url": "https://packagist.org/downloads/",
-            "license": [
-                "MIT"
-            ],
-            "authors": [
-                {
-                    "name": "Elzo Brito dos Santos Filho",
-                    "email": "elzo.filho@etec.sp.gov.br"
-                }
-            ],
-            "description": "Componente leve para download e exibição inline de arquivos com suporte a streaming e Range Requests",
-            "support": {
-                "issues": "https://github.com/elzobrito/OliviaForceDownload/issues",
-                "source": "https://github.com/elzobrito/OliviaForceDownload/tree/1.2"
-            },
-            "time": "2026-04-16T21:46:11+00:00"
-        },
-        {
-            "name": "elzobrito/olivia-pagination",
-            "version": "1.2",
-            "source": {
-                "type": "git",
-                "url": "https://github.com/elzobrito/OliviaPagination.git",
-                "reference": "8f20b5ed5f9f03a36cac8fa6c37770f1d43e3153"
-            },
-            "dist": {
-                "type": "zip",
-                "url": "https://api.github.com/repos/elzobrito/OliviaPagination/zipball/8f20b5ed5f9f03a36cac8fa6c37770f1d43e3153",
-                "reference": "8f20b5ed5f9f03a36cac8fa6c37770f1d43e3153",
-                "shasum": ""
-            },
-            "require": {
-                "php": "^7.1|^8.2.4"
-            },
-            "type": "library",
-            "autoload": {
-                "psr-4": {
-                    "OliviaPagination\\": "src"
-                }
-            },
-            "notification-url": "https://packagist.org/downloads/",
-            "license": [
-                "MIT"
-            ],
-            "authors": [
-                {
-                    "name": "Elzo Brito dos Santos Filho",
-                    "email": "elzo.filho@etec.sp.gov.br"
-                }
-            ],
-            "description": "Simple PHP pagination library with HTML link rendering and offset/limit helpers",
-            "keywords": [
-                "bootstrap",
-                "limit",
-                "offset",
-                "pagination",
-                "paginator",
-                "php"
-            ],
-            "support": {
-                "issues": "https://github.com/elzobrito/OliviaPagination/issues",
-                "source": "https://github.com/elzobrito/OliviaPagination/tree/1.2"
-            },
-            "time": "2026-04-16T23:15:08+00:00"
-        },
-        {
-            "name": "elzobrito/olivia-pdf",
-            "version": "1.1",
-            "source": {
-                "type": "git",
-                "url": "https://github.com/elzobrito/OliviaPdf.git",
-                "reference": "0dca18e4345c3c867e76dc0bb9d0458da54e66c8"
-            },
-            "dist": {
-                "type": "zip",
-                "url": "https://api.github.com/repos/elzobrito/OliviaPdf/zipball/0dca18e4345c3c867e76dc0bb9d0458da54e66c8",
-                "reference": "0dca18e4345c3c867e76dc0bb9d0458da54e66c8",
-                "shasum": ""
-            },
-            "require": {
-                "fpdf/fpdf": "^1.82",
-                "php": "^7.1 || ^8.0"
-            },
-            "type": "library",
-            "autoload": {
-                "psr-4": {
-                    "Oliviapdf\\": "src"
-                }
-            },
-            "notification-url": "https://packagist.org/downloads/",
-            "license": [
-                "MIT"
-            ],
-            "authors": [
-                {
-                    "name": "Elzo Brito dos Santos Filho",
-                    "email": "elzo.filho@etec.sp.gov.br"
-                }
-            ],
-            "description": "PDF library based on FPDF with Olivia extensions",
-            "support": {
-                "issues": "https://github.com/elzobrito/OliviaPdf/issues",
-                "source": "https://github.com/elzobrito/OliviaPdf/tree/1.1"
-            },
-            "time": "2026-04-16T23:26:27+00:00"
-        },
-        {
-            "name": "elzobrito/olivia-router",
-            "version": "2.3",
-            "source": {
-                "type": "git",
-                "url": "https://github.com/elzobrito/OliviaRoute.git",
-                "reference": "5ec6c7a2c5c5d7bb0f0ae3c893f53791345c5a7c"
-            },
-            "dist": {
-                "type": "zip",
-                "url": "https://api.github.com/repos/elzobrito/OliviaRoute/zipball/5ec6c7a2c5c5d7bb0f0ae3c893f53791345c5a7c",
-                "reference": "5ec6c7a2c5c5d7bb0f0ae3c893f53791345c5a7c",
-                "shasum": ""
-            },
-            "require": {
-                "php": "^7.1|^8.2.4"
-            },
-            "type": "library",
-            "autoload": {
-                "psr-4": {
-                    "OliviaRouter\\": "src"
-                }
-            },
-            "notification-url": "https://packagist.org/downloads/",
-            "license": [
-                "MIT"
-            ],
-            "authors": [
-                {
-                    "name": "Elzo Brito dos Santos Filho",
-                    "email": "elzo.filho@etec.sp.gov.br"
-                }
-            ],
-            "description": "Router php",
-            "support": {
-                "issues": "https://github.com/elzobrito/OliviaRoute/issues",
-                "source": "https://github.com/elzobrito/OliviaRoute/tree/2.3"
-            },
-            "time": "2026-04-16T23:55:28+00:00"
-        },
-        {
-            "name": "elzobrito/olivia-upload-file",
-            "version": "1.1",
-            "source": {
-                "type": "git",
-                "url": "https://github.com/elzobrito/OliviaUpload.git",
-                "reference": "18d9d892439a4b7d78156ff771efb30ed0f615b9"
-            },
-            "dist": {
-                "type": "zip",
-                "url": "https://api.github.com/repos/elzobrito/OliviaUpload/zipball/18d9d892439a4b7d78156ff771efb30ed0f615b9",
-                "reference": "18d9d892439a4b7d78156ff771efb30ed0f615b9",
-                "shasum": ""
-            },
-            "require": {
-                "php": "^7.2.5|^8.0",
-                "ramsey/uuid": "^4.0"
-            },
-            "type": "library",
-            "autoload": {
-                "psr-4": {
-                    "OliviaUpload\\": "src"
-                }
-            },
-            "notification-url": "https://packagist.org/downloads/",
-            "license": [
-                "MIT"
-            ],
-            "authors": [
-                {
-                    "name": "Elzo Brito dos Santos Filho",
-                    "email": "elzo.filho@etec.sp.gov.br"
-                }
-            ],
-            "description": "upload php",
-            "support": {
-                "issues": "https://github.com/elzobrito/OliviaUpload/issues",
-                "source": "https://github.com/elzobrito/OliviaUpload/tree/1.1"
-            },
-            "time": "2021-10-30T15:38:32+00:00"
+            "time": "2026-09-12T10:28:18+00:00"
         },
         {
             "name": "fpdf/fpdf",
-            "version": "1.86.1",
+            "version": "1.90.0",
             "source": {
                 "type": "git",
                 "url": "https://github.com/coreydoughty/Fpdf.git",
-                "reference": "2034ab9f7b03b8294933d7fd27828d13963368e5"
+                "reference": "4078bf7667c957627f72d2b307744c7ebf0109e5"
             },
             "dist": {
                 "type": "zip",
-                "url": "https://api.github.com/repos/coreydoughty/Fpdf/zipball/2034ab9f7b03b8294933d7fd27828d13963368e5",
-                "reference": "2034ab9f7b03b8294933d7fd27828d13963368e5",
+                "url": "https://api.github.com/repos/coreydoughty/Fpdf/zipball/4078bf7667c957627f72d2b307744c7ebf0109e5",
+                "reference": "4078bf7667c957627f72d2b307744c7ebf0109e5",
                 "shasum": ""
             },
             "require": {
@@ -406,9 +115,9 @@
             ],
             "support": {
                 "issues": "https://github.com/coreydoughty/Fpdf/issues",
-                "source": "https://github.com/coreydoughty/Fpdf/tree/1.86.1"
+                "source": "https://github.com/coreydoughty/Fpdf/tree/1.90.0"
             },
-            "time": "2025-12-08T14:03:59+00:00"
+            "time": "2026-07-13T17:53:25+00:00"
         },
         {
             "name": "ramsey/collection",
@@ -488,20 +197,20 @@
         },
         {
             "name": "ramsey/uuid",
-            "version": "4.9.2",
+            "version": "4.9.4",
             "source": {
                 "type": "git",
                 "url": "https://github.com/ramsey/uuid.git",
-                "reference": "8429c78ca35a09f27565311b98101e2826affde0"
+                "reference": "75d73f48d02797c2c285a7e9f348fadc0102ffe2"
             },
             "dist": {
                 "type": "zip",
-                "url": "https://api.github.com/repos/ramsey/uuid/zipball/8429c78ca35a09f27565311b98101e2826affde0",
-                "reference": "8429c78ca35a09f27565311b98101e2826affde0",
+                "url": "https://api.github.com/repos/ramsey/uuid/zipball/75d73f48d02797c2c285a7e9f348fadc0102ffe2",
+                "reference": "75d73f48d02797c2c285a7e9f348fadc0102ffe2",
                 "shasum": ""
             },
             "require": {
-                "brick/math": "^0.8.16 || ^0.9 || ^0.10 || ^0.11 || ^0.12 || ^0.13 || ^0.14",
+                "brick/math": "^0.8.16 || ^0.9 || ^0.10 || ^0.11 || ^0.12 || ^0.13 || ^0.14 || ^0.15 || ^0.16 || ^0.17 || ^0.18 || ^0.19 || ^0.20 || ^1.0",
                 "php": "^8.0",
                 "ramsey/collection": "^1.2 || ^2.0"
             },
@@ -560,9 +269,9 @@
             ],
             "support": {
                 "issues": "https://github.com/ramsey/uuid/issues",
-                "source": "https://github.com/ramsey/uuid/tree/4.9.2"
+                "source": "https://github.com/ramsey/uuid/tree/4.9.4"
             },
-            "time": "2025-12-14T04:43:48+00:00"
+            "time": "2026-09-16T11:39:30+00:00"
         }
     ],
     "packages-dev": [],
@@ -572,8 +281,10 @@
     "prefer-stable": false,
     "prefer-lowest": false,
     "platform": {
-        "php": "^7.1|^8.2.4"
+        "php": ">=8.2 <8.6",
+        "ext-fileinfo": "*",
+        "ext-pdo": "*"
     },
     "platform-dev": {},
-    "plugin-api-version": "2.6.0"
+    "plugin-api-version": "2.9.0"
 }
