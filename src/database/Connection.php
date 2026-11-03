@@ -84,9 +84,17 @@ class Connection implements ConnectionInterface
             throw new InvalidArgumentException('Remote MySQL requires ssl=true with certificate verification.');
         }
 
+        $attrInitCommand = defined('Pdo\Mysql::ATTR_INIT_COMMAND')
+            ? constant('Pdo\Mysql::ATTR_INIT_COMMAND')
+            : (defined('PDO::MYSQL_ATTR_INIT_COMMAND') ? PDO::MYSQL_ATTR_INIT_COMMAND : 1002);
+
+        $attrSslVerify = defined('Pdo\Mysql::ATTR_SSL_VERIFY_SERVER_CERT')
+            ? constant('Pdo\Mysql::ATTR_SSL_VERIFY_SERVER_CERT')
+            : (defined('PDO::MYSQL_ATTR_SSL_VERIFY_SERVER_CERT') ? PDO::MYSQL_ATTR_SSL_VERIFY_SERVER_CERT : 1014);
+
         $options = [
-            PDO::MYSQL_ATTR_INIT_COMMAND => 'SET NAMES "UTF8"',
-            PDO::MYSQL_ATTR_SSL_VERIFY_SERVER_CERT => $ssl,
+            $attrInitCommand => 'SET NAMES "UTF8"',
+            $attrSslVerify => $ssl,
         ];
 
         if ($ssl) {
@@ -97,7 +105,10 @@ class Connection implements ConnectionInterface
             if (!is_file($caFile)) {
                 throw new InvalidArgumentException('TLS CA certificate is required when ssl=true.');
             }
-            $options[PDO::MYSQL_ATTR_SSL_CA] = $caFile;
+            $attrSslCa = defined('Pdo\Mysql::ATTR_SSL_CA')
+                ? constant('Pdo\Mysql::ATTR_SSL_CA')
+                : (defined('PDO::MYSQL_ATTR_SSL_CA') ? PDO::MYSQL_ATTR_SSL_CA : 1012);
+            $options[$attrSslCa] = $caFile;
         }
 
         return $options;
@@ -126,7 +137,7 @@ class Connection implements ConnectionInterface
         }
     }
 
-    private final function statement($sql)
+    private function statement($sql)
     {
         $attempts = 0;
         while ($attempts < 3) {

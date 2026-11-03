@@ -101,10 +101,31 @@ class QueryBuilder extends Connection
             $sql .= ' ' . $join;
         }
 
-        foreach (['where', 'group', 'order', 'having', 'limit'] as $key) {
-            if (isset($this->clauses[$key])) {
-                $sql .= ' ' . $this->clauses[$key]['instruction'] . ' ';
-                $sql .= implode($this->clauses[$key]['separator'], $this->clauses[$key]) . ' ';
+        $clauseConfigs = [
+            'where' => ['instruction' => 'WHERE', 'separator' => ' AND '],
+            'group' => ['instruction' => 'GROUP BY', 'separator' => ', '],
+            'order' => ['instruction' => 'ORDER BY', 'separator' => ', '],
+            'having' => ['instruction' => 'HAVING', 'separator' => ' AND '],
+            'limit' => ['instruction' => 'LIMIT', 'separator' => ', '],
+        ];
+
+        foreach ($clauseConfigs as $key => $defaultCfg) {
+            if (!empty($this->clauses[$key])) {
+                $clauseData = $this->clauses[$key];
+                if (is_array($clauseData) && isset($clauseData['instruction'])) {
+                    $instruction = $clauseData['instruction'];
+                    $separator = $clauseData['separator'] ?? $defaultCfg['separator'];
+                    unset($clauseData['instruction'], $clauseData['separator']);
+                    $clauseStr = implode($separator, array_filter((array) $clauseData));
+                } else {
+                    $instruction = $defaultCfg['instruction'];
+                    $separator = $defaultCfg['separator'];
+                    $clauseStr = is_array($clauseData) ? implode($separator, array_filter($clauseData)) : (string) $clauseData;
+                }
+                $clauseStr = trim($clauseStr);
+                if ($clauseStr !== '') {
+                    $sql .= ' ' . $instruction . ' ' . $clauseStr;
+                }
             }
         }
 
