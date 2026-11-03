@@ -7,11 +7,11 @@
     "run": {
       "run_id": "RUN-0001",
       "status": "success",
-      "last_event_seq": 170,
-      "projection_hash_sha256": "2490143a96addc238ebe8b29c4390ed881fd1b795aa3d5a6c0b0234253fe067a",
+      "last_event_seq": 182,
+      "projection_hash_sha256": "e85c1067b0844a9f8763950cb355e034006dd085c353ff46fd50957f46167c7a",
       "verify_status": "ok"
     },
-    "updated_at": "2026-11-03T19:58:55Z"
+    "updated_at": "2026-11-03T20:08:50Z"
   },
   "project": {
     "name": "esaa-core",
@@ -533,14 +533,42 @@
         ]
       },
       "completed_at": "2026-11-03T19:58:55Z"
+    },
+    {
+      "task_id": "OLIVIA-PHP85-COMPAT-014",
+      "task_kind": "impl",
+      "title": "Allow ssl=false in Connection while enforcing CA verification when ssl=true",
+      "description": "Remove mandatory ssl=true exception on non-loopback hosts in Connection so local Docker/private network and explicit ssl=false databases work, while keeping strict CA verification when ssl=true.",
+      "status": "done",
+      "depends_on": [
+        "OLIVIA-PHP85-COMPAT-013"
+      ],
+      "targets": [
+        "src/database/Connection.php",
+        "tests/kernel/security_contract_test.php"
+      ],
+      "outputs": {
+        "files": []
+      },
+      "immutability": {
+        "done_is_immutable": true
+      },
+      "assigned_to": "agent-impl",
+      "started_at": "2026-11-03T20:07:25Z",
+      "verification": {
+        "checks": [
+          "php tests/kernel/framework_contract_test.php && php tests/kernel/security_contract_test.php"
+        ]
+      },
+      "completed_at": "2026-11-03T20:08:50Z"
     }
   ],
   "indexes": {
     "by_status": {
-      "done": 13
+      "done": 14
     },
     "by_kind": {
-      "impl": 7,
+      "impl": 8,
       "qa": 3,
       "spec": 3
     }
