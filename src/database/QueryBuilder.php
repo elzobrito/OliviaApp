@@ -65,8 +65,9 @@ class QueryBuilder extends Connection
         $this->validateClause('fields');
 
         $table = $this->clauses['table'];
-        $fields = implode(', ', $this->clauses['fields']);
-        $placeholders = implode(', ', array_fill(0, count($this->clauses['fields']), '?'));
+        $fieldsList = is_array($this->clauses['fields']) ? $this->clauses['fields'] : [$this->clauses['fields']];
+        $fields = implode(', ', $fieldsList);
+        $placeholders = implode(', ', array_fill(0, count($fieldsList), '?'));
 
         $sql = "INSERT INTO {$table} ({$fields}) VALUES ({$placeholders})";
 
@@ -91,7 +92,7 @@ class QueryBuilder extends Connection
         $this->validateClause('fields');
 
         $table = $this->clauses['table'];
-        $fields = implode(', ', $this->clauses['fields']);
+        $fields = is_array($this->clauses['fields']) ? implode(', ', $this->clauses['fields']) : (string) $this->clauses['fields'];
         $join = $this->clauses['join'] ?? '';
         $preSelect = $this->clauses['pre'] ?? '';
 
@@ -162,7 +163,7 @@ class QueryBuilder extends Connection
         $sets = is_array($this->clauses['fields']) ? implode(', ', array_map(fn ($value) => $value . ' = ?', $this->clauses['fields'])) : $this->clauses['fields'];
 
         $whereClausules = $this->clauses['where'] ?? [];
-        $whereArray = implode(' ', $whereClausules);
+        $whereArray = is_array($whereClausules) ? implode(' ', $whereClausules) : (string) $whereClausules;
         $where = !empty($whereArray) ? ' WHERE ' . $whereArray : '';
 
         $sql = "UPDATE {$table} ";
