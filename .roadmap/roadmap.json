@@ -7,11 +7,11 @@
     "run": {
       "run_id": "RUN-0001",
       "status": "success",
-      "last_event_seq": 122,
-      "projection_hash_sha256": "50bc566a28a25d4c9e6399e10c912dd49c4341d0cd279bfd1142b3067d75a5ad",
+      "last_event_seq": 134,
+      "projection_hash_sha256": "58e674908c90aac995a6a8b35baf6ad6b77880f50734b78f950c6975b38fbf7b",
       "verify_status": "ok"
     },
-    "updated_at": "2026-10-26T19:55:54Z"
+    "updated_at": "2026-11-03T18:54:25Z"
   },
   "project": {
     "name": "esaa-core",
@@ -411,14 +411,53 @@
         ]
       },
       "completed_at": "2026-10-26T19:55:54Z"
+    },
+    {
+      "task_id": "OLIVIA-PHP85-COMPAT-010",
+      "task_kind": "impl",
+      "title": "Correção de compatibilidade PHP 8.5 em Connection e QueryBuilder",
+      "description": "Correção de compatibilidade PHP 8.5 em Connection e QueryBuilder",
+      "status": "done",
+      "depends_on": [],
+      "targets": [
+        "src/database/"
+      ],
+      "outputs": {
+        "files": []
+      },
+      "immutability": {
+        "done_is_immutable": true
+      },
+      "boundary_grant": [
+        "src/**",
+        "tests/**"
+      ],
+      "task_type": "maintenance",
+      "acceptance_criteria": [
+        "Connection statement() nao usa final",
+        "Connection mysqlClientOptions() compativel com PHP 8.5",
+        "QueryBuilder select() trata clausulas sem undefined array key"
+      ],
+      "required_review_mode": "functional",
+      "assigned_to": "agent-impl",
+      "started_at": "2026-11-03T18:52:42Z",
+      "verification": {
+        "checks": [
+          "Connection statement() removido final; sem PHP Warning em PHP 8.5",
+          "Connection mysqlClientOptions() usa constantes modernas Pdo\\Mysql sem deprecation em PHP 8.5",
+          "QueryBuilder select() trata clausulas com instrucao/separador sem undefined key",
+          "php tests/kernel/framework_contract_test.php && php tests/kernel/security_contract_test.php passed"
+        ]
+      },
+      "completed_at": "2026-11-03T18:54:25Z"
     }
   ],
   "indexes": {
     "by_status": {
-      "done": 9
+      "done": 10
     },
     "by_kind": {
-      "impl": 3,
+      "impl": 4,
       "qa": 3,
       "spec": 3
     }
