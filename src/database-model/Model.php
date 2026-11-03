@@ -2,9 +2,9 @@
 
 namespace OliviaDatabaseModel;
 
-use OliviaDatabaseConfig\Database;
 use OliviaDatabaseLibrary\QueryBuilder;
 use OliviaDatabaseLibrary\Model as iModel;
+use OliviaLib\Database;
 
 class Model implements iModel
 {
@@ -85,6 +85,20 @@ class Model implements iModel
     {
         return (new QueryBuilder(Database::getDB($this->drive)))
             ->table($this->table)
+            ->fields($fields ?? $this->atributos)
+            ->where($wheres)
+            ->join($join)
+            ->group($group)
+            ->order($order)
+            ->having($having)
+            ->limit($limit)
+            ->select($values);
+    }
+
+    public function find_table($fields, $wheres, $values, $join = null, $group = null, $order = null, $having = null, $limit = null, $table = null)
+    {
+        return (new QueryBuilder(Database::getDB($this->drive)))
+            ->table($table ?? $this->table)
             ->fields($fields ?? $this->atributos)
             ->where($wheres)
             ->join($join)

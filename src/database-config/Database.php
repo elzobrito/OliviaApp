@@ -20,6 +20,10 @@ class Database extends ADatabase
 
     public static function getDB($name = null)
     {
+        if (class_exists(\OliviaLib\Database::class)) {
+            return \OliviaLib\Database::getDB($name);
+        }
+
         if (!array_key_exists($name, self::$databases)) {
             throw new \Exception("Banco de dados inválido");
         }
