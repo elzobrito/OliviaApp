@@ -55,6 +55,7 @@ class Connection implements ConnectionInterface
     {
         if (!$this->pdo) {
             $attempts = 0;
+            $lastException = null;
             while ($attempts < 3) {
                 try {
 
@@ -68,11 +69,13 @@ class Connection implements ConnectionInterface
 
                     return $this->pdo; // Conexão estabelecida, retornar o objeto PDO
                 } catch (PDOException $e) {
+                    $lastException = $e;
                     $attempts++;
                     sleep(1);
                 }
             }
-            throw new PDOException("Falha ao tentar conectar ao banco de dados.");
+            $detail = $lastException instanceof PDOException ? ' (' . $lastException->getMessage() . ')' : '';
+            throw new PDOException("Falha ao tentar conectar ao banco de dados." . $detail);
         }
         return $this->pdo;
     }
