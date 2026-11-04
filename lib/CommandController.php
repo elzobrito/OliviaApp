@@ -20,7 +20,7 @@ class CommandController
         foreach ($this->array_object_temp as $key => $value) {
             $array_final[] = $value;
         }
-        
+
         return $array_final;
     }
 
@@ -35,8 +35,8 @@ class CommandController
     public function letra_maiuscula($string)
     {
         $arr = explode(' ', $string);
-        foreach ($arr as $key => $palavra){
-            $palavra = strtolower($palavra);            
+        foreach ($arr as $key => $palavra) {
+            $palavra = strtolower($palavra);
             $arr[$key] = ((strlen($palavra) > 3 ? ucfirst($palavra) : $palavra));
         }
 
@@ -71,7 +71,7 @@ class CommandController
     {
         $str = preg_replace('/[^0-9]/is', '', $str);
         $str = str_replace(" ", "", $str);
-        for ($i = 0; $i < strlen($str); $i++) 
+        for ($i = 0; $i < strlen($str); $i++)
             $mask[strpos($mask, "#")] = $str[$i];
         return $mask;
     }
@@ -231,24 +231,50 @@ class CommandController
 
     private function encrypt_decrypt($action, $string, $secret_key = null, $secret_iv = null)
     {
+        // Garante que $string seja string (ou vazio)
+        if (is_array($string)) {
+            // Se for array, pega o primeiro valor (comportamento comum em cookies/session)
+            $string = reset($string);
+        }
+
+        if (!is_string($string) && $string !== null) {
+            return false;
+        }
+
+        $string = $string ?? '';
+
+        // Resolve chaves (com fallback seguro)
+        $secret_key = $secret_key ?? ($_SESSION['secret_key'] ?? null);
+        $secret_iv  = $secret_iv  ?? ($_SESSION['secret_iv'] ?? null);
+
+        if (empty($secret_key) || empty($secret_iv)) {
+            return false;
+        }
+
         $output = false;
         $encrypt_method = "AES-256-CBC";
-        // hash
-        $key = hash('sha256', $secret_key ?? $_SESSION['secret_key']);
-        // iv - encrypt method AES-256-CBC expects 16 bytes - else you will get a warning
-        $iv = substr(hash('sha256', $secret_iv ?? $_SESSION['secret_iv']), 0, 16);
+
+        $key = hash('sha256', $secret_key);
+        $iv  = substr(hash('sha256', $secret_iv), 0, 16);
 
         switch ($action) {
-            case 'encrypt': {
-                    $output = openssl_encrypt($string, $encrypt_method, $key, 0, $iv);
-                    $output = base64_encode($output);
-                    break;
+            case 'encrypt':
+                $encrypted = openssl_encrypt($string, $encrypt_method, $key, 0, $iv);
+                if ($encrypted === false) {
+                    return false;
+                }
+                $output = base64_encode($encrypted);
+                break;
+
+            case 'decrypt':
+                // base64_decode strict + verificação
+                $decoded = base64_decode($string, true);
+                if ($decoded === false) {
+                    return false;
                 }
 
-            case 'decrypt': {
-                    $output = openssl_decrypt(base64_decode($string), $encrypt_method, $key, 0, $iv);
-                    break;
-                }
+                $output = openssl_decrypt($decoded, $encrypt_method, $key, 0, $iv);
+                break;
         }
 
         return $output;
