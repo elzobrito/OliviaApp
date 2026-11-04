@@ -111,17 +111,6 @@ class Connection implements ConnectionInterface
         return $options;
     }
 
-    private function isRemoteMysql(): bool
-    {
-        $driver = strtolower((string) ($this->options['driver'] ?? 'mysql'));
-        if ($driver !== 'mysql') {
-            return false;
-        }
-
-        $host = strtolower(trim((string) ($this->options['host'] ?? '')));
-        return $host !== '' && $host !== '127.0.0.1' && $host !== 'localhost' && $host !== '::1';
-    }
-
     /**
      * @return string
      */
