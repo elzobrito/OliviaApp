@@ -111,19 +111,24 @@ namespace {
     assert_true(strpos($url, '_token') === false, 'route() does not put CSRF token in the URL');
     assert_true(strpos($url, 'id=1') !== false, 'route() keeps caller parameters');
 
-    $remoteRejected = false;
+    $nonSslRemote = new \OliviaDatabaseLibrary\Connection([
+        'driver' => 'mysql',
+        'host' => 'db.example.com',
+        'user' => 'olivia',
+        'password' => 'secret',
+        'ssl' => false,
+    ]);
+    $nonSslOptions = $nonSslRemote->mysqlClientOptions();
+    assert_true($nonSslOptions[PDO::MYSQL_ATTR_SSL_VERIFY_SERVER_CERT] === false, 'explicit ssl=false disables cert verify');
+    $sslCaAttr = defined('PDO::MYSQL_ATTR_SSL_CA') ? PDO::MYSQL_ATTR_SSL_CA : 1012;
+    assert_true(!array_key_exists($sslCaAttr, $nonSslOptions), 'ssl=false does not set MYSQL_ATTR_SSL_CA');
+    $mandatoryTls = false;
     try {
-        new \OliviaDatabaseLibrary\Connection([
-            'driver' => 'mysql',
-            'host' => 'db.example.com',
-            'user' => 'olivia',
-            'password' => 'secret',
-            'ssl' => false,
-        ]);
+        $nonSslRemote->mysqlClientOptions();
     } catch (\InvalidArgumentException $exception) {
-        $remoteRejected = strpos($exception->getMessage(), 'ssl=true') !== false;
+        $mandatoryTls = strpos($exception->getMessage(), 'Remote MySQL requires ssl=true') !== false;
     }
-    assert_true($remoteRejected, 'remote MySQL without ssl is rejected');
+    assert_true($mandatoryTls === false, 'remote ssl=false does not throw mandatory TLS exception');
 
     $local = new \OliviaDatabaseLibrary\Connection([
         'driver' => 'mysql',

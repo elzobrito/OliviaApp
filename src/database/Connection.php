@@ -31,9 +31,6 @@ class Connection implements ConnectionInterface
         }
 
         $this->options = $options;
-        if ($this->isRemoteMysql() && empty($this->options['ssl'])) {
-            throw new InvalidArgumentException('Remote MySQL requires ssl=true with certificate verification.');
-        }
     }
 
     /**
@@ -83,9 +80,6 @@ class Connection implements ConnectionInterface
     public function mysqlClientOptions(): array
     {
         $ssl = !empty($this->options['ssl']);
-        if ($this->isRemoteMysql() && !$ssl) {
-            throw new InvalidArgumentException('Remote MySQL requires ssl=true with certificate verification.');
-        }
 
         $attrInitCommand = defined('Pdo\Mysql::ATTR_INIT_COMMAND')
             ? constant('Pdo\Mysql::ATTR_INIT_COMMAND')
@@ -115,17 +109,6 @@ class Connection implements ConnectionInterface
         }
 
         return $options;
-    }
-
-    private function isRemoteMysql(): bool
-    {
-        $driver = strtolower((string) ($this->options['driver'] ?? 'mysql'));
-        if ($driver !== 'mysql') {
-            return false;
-        }
-
-        $host = strtolower(trim((string) ($this->options['host'] ?? '')));
-        return $host !== '' && $host !== '127.0.0.1' && $host !== 'localhost' && $host !== '::1';
     }
 
     /**

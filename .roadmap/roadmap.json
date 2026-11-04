@@ -7,11 +7,11 @@
     "run": {
       "run_id": "RUN-0001",
       "status": "success",
-      "last_event_seq": 170,
-      "projection_hash_sha256": "2490143a96addc238ebe8b29c4390ed881fd1b795aa3d5a6c0b0234253fe067a",
+      "last_event_seq": 195,
+      "projection_hash_sha256": "00c6a430bb59fc8dd58ed2e781ec1749915e12723c3fdf41b933ea7d9d3623e7",
       "verify_status": "ok"
     },
-    "updated_at": "2026-11-03T19:58:55Z"
+    "updated_at": "2026-11-04T20:04:04Z"
   },
   "project": {
     "name": "esaa-core",
@@ -533,14 +533,91 @@
         ]
       },
       "completed_at": "2026-11-03T19:58:55Z"
+    },
+    {
+      "task_id": "OLIVIA-PHP85-COMPAT-014",
+      "task_kind": "impl",
+      "title": "Allow ssl=false in Connection while enforcing CA verification when ssl=true",
+      "description": "Remove mandatory ssl=true exception on non-loopback hosts in Connection so local Docker/private network and explicit ssl=false databases work, while keeping strict CA verification when ssl=true.",
+      "status": "done",
+      "depends_on": [
+        "OLIVIA-PHP85-COMPAT-013"
+      ],
+      "targets": [
+        "src/database/Connection.php",
+        "tests/kernel/security_contract_test.php"
+      ],
+      "outputs": {
+        "files": []
+      },
+      "immutability": {
+        "done_is_immutable": true
+      },
+      "assigned_to": "agent-impl",
+      "started_at": "2026-11-03T20:07:25Z",
+      "verification": {
+        "checks": [
+          "php tests/kernel/framework_contract_test.php && php tests/kernel/security_contract_test.php"
+        ]
+      },
+      "completed_at": "2026-11-03T20:08:50Z"
+    },
+    {
+      "task_id": "HF-ISS-OLIVIA-DB-SSL-001",
+      "task_kind": "impl",
+      "title": "Hotfix for ISS-OLIVIA-DB-SSL-001",
+      "description": "Apply a minimal hotfix to resolve issue ISS-OLIVIA-DB-SSL-001 without regressing immutable done tasks.",
+      "status": "review",
+      "depends_on": [],
+      "targets": [
+        "ISS-OLIVIA-DB-SSL-001"
+      ],
+      "outputs": {
+        "files": [
+          "docs/qa/ISS-OLIVIA-DB-SSL-001.md"
+        ]
+      },
+      "immutability": {
+        "done_is_immutable": true
+      },
+      "is_hotfix": true,
+      "issue_id": "ISS-OLIVIA-DB-SSL-001",
+      "fixes": "OLIVIA-PHP85-COMPAT-014",
+      "scope_patch": [
+        "src/database/Connection.php",
+        "tests/kernel/security_contract_test.php",
+        "README.md"
+      ],
+      "required_verification": [
+        "unit",
+        "regression"
+      ],
+      "baseline_id": "B-000",
+      "boundary_grant": [
+        "src/database/**",
+        "tests/kernel/**",
+        "README.md",
+        "docs/qa/**"
+      ],
+      "assigned_to": "agent-impl",
+      "started_at": "2026-11-04T20:03:06Z",
+      "verification": {
+        "checks": [
+          "src/database/Connection.php: construtor e mysqlClientOptions() nao lancam 'Remote MySQL requires ssl=true' quando ssl=false",
+          "isRemoteMysql() removido; ssl=true continua exigindo CA",
+          "php tests/kernel/security_contract_test.php passed (remote ssl=false does not throw; ssl=false does not set MYSQL_ATTR_SSL_CA)",
+          "php tests/kernel/framework_contract_test.php passed"
+        ]
+      }
     }
   ],
   "indexes": {
     "by_status": {
-      "done": 13
+      "done": 14,
+      "review": 1
     },
     "by_kind": {
-      "impl": 7,
+      "impl": 9,
       "qa": 3,
       "spec": 3
     }

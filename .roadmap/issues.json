@@ -4,11 +4,42 @@
     "esaa_version": "0.4.x",
     "generated_by": "esaa.project",
     "source_event_store": ".roadmap/activity.jsonl",
-    "last_event_seq": 170,
-    "updated_at": "2026-11-03T19:58:55Z"
+    "last_event_seq": 195,
+    "updated_at": "2026-11-04T20:04:04Z"
   },
-  "issues": [],
+  "issues": [
+    {
+      "issue_id": "ISS-OLIVIA-DB-SSL-001",
+      "status": "open",
+      "severity": "high",
+      "title": "Vendor Connection rejeita MySQL remoto com ssl=false",
+      "baseline_id": null,
+      "affected": {},
+      "evidence": {
+        "symptom": "Consumidores com vendor antigo (ex. /var/www/html/sistema/vendor/elzobrito/olivia-framework/src/database/Connection.php:35) lançam InvalidArgumentException 'Remote MySQL requires ssl=true with certificate verification' quando o host não é loopback e ssl=false. MySQL com TLS desligado não conecta. Fonte COMPAT-014 já removeu os throws; README ainda diz que remoto exige ssl=true; isRemoteMysql() ficou morto.",
+        "repro_steps": [
+          "Em lib/Database.php do app, host remoto (ex. *.mysql.database.azure.com) e 'ssl' => false",
+          "Disparar Model->find() (login AuthController->autenticar)",
+          "Fatal error Uncaught InvalidArgumentException na Connection::__construct linha 35 do vendor"
+        ]
+      },
+      "resolution": null,
+      "links": {
+        "reported_by_task_id": "OLIVIA-PHP85-COMPAT-014",
+        "fixes_task_id": null,
+        "hotfix_task_id": "HF-ISS-OLIVIA-DB-SSL-001"
+      },
+      "timeline": {
+        "created_event_seq": 183,
+        "resolved_event_seq": null
+      }
+    }
+  ],
   "indexes": {
-    "open_by_baseline": {}
+    "open_by_baseline": {
+      "unknown": [
+        "ISS-OLIVIA-DB-SSL-001"
+      ]
+    }
   }
 }
