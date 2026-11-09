@@ -10,7 +10,7 @@ COPY lib ./lib
 COPY src ./src
 COPY publico ./publico
 COPY index.php ./
-ENV COMPOSER_ROOT_VERSION=2.0.0
+ENV COMPOSER_ROOT_VERSION=2.0.1
 RUN composer install --no-dev --prefer-dist --no-interaction --no-progress \
     && composer check-platform-reqs --no-dev
 

@@ -3,7 +3,7 @@
 Olivia é um framework PHP para aplicações web com organização em MVC, roteamento com suporte a árvore Trie e middlewares, proteção CSRF baseada em sessão, bibliotecas auxiliares consolidadas *in-tree* sob um único pin de PHP e uma camada de views baseada em componentes reutilizáveis.
 
 - **Pacote Composer:** `elzobrito/olivia-framework`
-- **Versão atual:** `2.0` (`COMPOSER_ROOT_VERSION=2.0.0`)
+- **Versão atual:** `2.0.1` (`COMPOSER_ROOT_VERSION=2.0.1`)
 - **Repositório:** https://github.com/elzobrito/OliviaApp
 
 Este repositório publica o kernel (`OliviaLib\\` em `lib/`), todas as bibliotecas do ecossistema Olivia incorporadas *in-tree* (`src/`) e o skeleton de aplicação (`app/`, `publico/`, `index.php`). Um único pin de PHP cobre tanto o kernel quanto as bibliotecas. O Hub ATRIO consome o pacote e mantém as classes específicas do Hub (`Config`, `Database`, `Route`) no próprio aplicativo.
@@ -26,6 +26,8 @@ Este repositório publica o kernel (`OliviaLib\\` em `lib/`), todas as bibliotec
   - `OliviaDatabaseModel\Model` e `OliviaDatabaseConfig\Database` delegam a resolução de conexão para `OliviaLib\Database::getDB()` da aplicação e expõem `find_table()` além de `find()`, `findForId()`, `all()`, `count()`, `save()`, `update()`, `delete()` e `deleteFull()`.
 - **Criptografia reforçada (`CommandController`):**
   - `encryptIt()` e `decryptIt()` (`AES-256-CBC`) validam estritamente os tipos de entrada (tratando arrays/nulos com segurança), usam `base64_decode(..., true)` estrito e falham fechado (`false`) quando `secret_key` ou `secret_iv` estão ausentes ou inválidos.
+- **Resiliência do Cache de Sessão (`2.0.1`):**
+  - `OliviaCache\SessionCache` valida explicitamente a integridade de array antes de ler (`get()`) ou gravar (`set()`), evitando warnings de *illegal string offset* e *array to string conversion* caso o offset de sessão estivesse previamente instanciado com tipo escalar/string.
 
 ---
 

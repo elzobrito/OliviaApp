@@ -7,11 +7,11 @@
     "run": {
       "run_id": "RUN-0001",
       "status": "success",
-      "last_event_seq": 219,
-      "projection_hash_sha256": "4929a170bde18d5a3112e74a1f94354edc5f3a7160452199e715e2fbb6fbb582",
+      "last_event_seq": 235,
+      "projection_hash_sha256": "50c8d511ff017dbac79fe126b3963ada271ebb68e7f27b81ba6b1a52aa57e9a6",
       "verify_status": "ok"
     },
-    "updated_at": "2026-11-05T18:41:04Z"
+    "updated_at": "2026-11-09T17:14:44Z"
   },
   "project": {
     "name": "esaa-core",
@@ -567,7 +567,7 @@
       "task_kind": "impl",
       "title": "Hotfix for ISS-OLIVIA-DB-SSL-001",
       "description": "Apply a minimal hotfix to resolve issue ISS-OLIVIA-DB-SSL-001 without regressing immutable done tasks.",
-      "status": "review",
+      "status": "done",
       "depends_on": [],
       "targets": [
         "ISS-OLIVIA-DB-SSL-001"
@@ -608,7 +608,8 @@
           "php tests/kernel/security_contract_test.php passed (remote ssl=false does not throw; ssl=false does not set MYSQL_ATTR_SSL_CA)",
           "php tests/kernel/framework_contract_test.php passed"
         ]
-      }
+      },
+      "completed_at": "2026-11-09T17:12:42Z"
     },
     {
       "task_id": "OLIVIA-DOC-015",
@@ -692,15 +693,55 @@
         ]
       },
       "completed_at": "2026-11-05T18:41:04Z"
+    },
+    {
+      "task_id": "OLIVIA-REL-201",
+      "task_kind": "impl",
+      "title": "Preparar release v2.0.1 (tag 2.0.1) com patch em SessionCache",
+      "description": "Atualizar README.md e Dockerfile (COMPOSER_ROOT_VERSION=2.0.1) para a release v2.0.1 (tag 2.0.1) do elzobrito/olivia-framework.",
+      "status": "done",
+      "depends_on": [],
+      "targets": [
+        "README.md",
+        "Dockerfile"
+      ],
+      "outputs": {
+        "files": [
+          "README.md",
+          "Dockerfile"
+        ]
+      },
+      "immutability": {
+        "done_is_immutable": true
+      },
+      "boundary_grant": [
+        "README.md",
+        "Dockerfile"
+      ],
+      "task_type": "release",
+      "acceptance_criteria": [
+        "Dockerfile define ENV COMPOSER_ROOT_VERSION=2.0.1 e preserva PHP_VERSION=8.5.12-fpm-alpine3.24.",
+        "README.md documenta a versao 2.0.1 e o patch de SessionCache.",
+        "Testes framework_contract_test.php e security_contract_test.php passam."
+      ],
+      "assigned_to": "agent-impl",
+      "started_at": "2026-11-09T17:13:58Z",
+      "verification": {
+        "checks": [
+          "Dockerfile define ENV COMPOSER_ROOT_VERSION=2.0.1",
+          "README.md documenta a versao 2.0.1 e o patch de SessionCache",
+          "Testes framework_contract_test.php e security_contract_test.php passaram"
+        ]
+      },
+      "completed_at": "2026-11-09T17:14:44Z"
     }
   ],
   "indexes": {
     "by_status": {
-      "done": 16,
-      "review": 1
+      "done": 18
     },
     "by_kind": {
-      "impl": 11,
+      "impl": 12,
       "qa": 3,
       "spec": 3
     }

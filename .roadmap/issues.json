@@ -4,13 +4,13 @@
     "esaa_version": "0.4.x",
     "generated_by": "esaa.project",
     "source_event_store": ".roadmap/activity.jsonl",
-    "last_event_seq": 219,
-    "updated_at": "2026-11-05T18:41:04Z"
+    "last_event_seq": 235,
+    "updated_at": "2026-11-09T17:14:44Z"
   },
   "issues": [
     {
       "issue_id": "ISS-OLIVIA-DB-SSL-001",
-      "status": "open",
+      "status": "resolved",
       "severity": "high",
       "title": "Vendor Connection rejeita MySQL remoto com ssl=false",
       "baseline_id": null,
@@ -23,7 +23,17 @@
           "Fatal error Uncaught InvalidArgumentException na Connection::__construct linha 35 do vendor"
         ]
       },
-      "resolution": null,
+      "resolution": {
+        "status": "resolved_by_hotfix",
+        "hotfix_task_id": "HF-ISS-OLIVIA-DB-SSL-001",
+        "review_task_id": "HF-ISS-OLIVIA-DB-SSL-001",
+        "checks": [
+          "src/database/Connection.php: construtor e mysqlClientOptions() nao lancam 'Remote MySQL requires ssl=true' quando ssl=false",
+          "isRemoteMysql() removido; ssl=true continua exigindo CA",
+          "php tests/kernel/security_contract_test.php passed (remote ssl=false does not throw; ssl=false does not set MYSQL_ATTR_SSL_CA)",
+          "php tests/kernel/framework_contract_test.php passed"
+        ]
+      },
       "links": {
         "reported_by_task_id": "OLIVIA-PHP85-COMPAT-014",
         "fixes_task_id": null,
@@ -31,15 +41,11 @@
       },
       "timeline": {
         "created_event_seq": 183,
-        "resolved_event_seq": null
+        "resolved_event_seq": 221
       }
     }
   ],
   "indexes": {
-    "open_by_baseline": {
-      "unknown": [
-        "ISS-OLIVIA-DB-SSL-001"
-      ]
-    }
+    "open_by_baseline": {}
   }
 }
