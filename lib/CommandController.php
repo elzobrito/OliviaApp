@@ -2,90 +2,30 @@
 
 namespace OliviaLib;
 
+use OliviaLib\Support\Crypto;
+use OliviaLib\Support\Formatos;
+
+/**
+ * Classe base de controllers, middlewares e views.
+ *
+ * Mantém apenas navegação, CSRF, leitura de requisição e mensagens flash.
+ * Formatação e criptografia vivem em OliviaLib\Support\Formatos e OliviaLib\Support\Crypto;
+ * os métodos antigos continuam aqui como atalhos @deprecated e serão removidos na 3.0.
+ */
 class CommandController
 {
-    private $parametros;
-    private $arrays;
+    private const FLASH_KEY = '_olivia_flash';
 
-    private $array_object_temp;
+    // ------------------------------------------------------------------
+    // Navegação
+    // ------------------------------------------------------------------
 
-    public function find_object($wheres, $values, $array)
-    {
-        $this->array_object_temp = $array;
-        foreach ($wheres as $key => $value)
-            $this->buscar_objeto_in_array($this->array_object_temp, $value, $values[$key]);
-
-        $array_final = [];
-
-        foreach ($this->array_object_temp as $key => $value) {
-            $array_final[] = $value;
-        }
-
-        return $array_final;
-    }
-
-    public function buscar_objeto_in_array($array, $objeto, $valor)
-    {
-        foreach ($array as $key => $array_object)
-            if ($array_object->$objeto != $valor) {
-                unset($this->array_object_temp[$key]);
-            }
-    }
-
-    public function letra_maiuscula($string)
-    {
-        $arr = explode(' ', $string);
-        foreach ($arr as $key => $palavra) {
-            $palavra = strtolower($palavra);
-            $arr[$key] = ((strlen($palavra) > 3 ? ucfirst($palavra) : $palavra));
-        }
-
-        return implode(' ', $arr);
-    }
-
-    public function mes_do_ano_por_extenso($mes)
-    {
-        $numero = intval($mes);
-        $meses[] = 'Janeiro';
-        $meses[] = 'Fevereiro';
-        $meses[] = 'Março';
-        $meses[] = 'Abril';
-        $meses[] = 'Maio';
-        $meses[] = 'Junho';
-        $meses[] = 'Julho';
-        $meses[] = 'Agosto';
-        $meses[] = 'Setembro';
-        $meses[] = 'Outubro';
-        $meses[] = 'Novembro';
-        $meses[] = 'Dezembro';
-
-        return $meses[$numero];
-    }
-
-    public function tirarAcentos($string)
-    {
-        return preg_replace(array("/(á|à|ã|â|ä)/", "/(Á|À|Ã|Â|Ä)/", "/(é|è|ê|ë)/", "/(É|È|Ê|Ë)/", "/(í|ì|î|ï)/", "/(Í|Ì|Î|Ï)/", "/(ó|ò|õ|ô|ö)/", "/(Ó|Ò|Õ|Ô|Ö)/", "/(ú|ù|û|ü)/", "/(Ú|Ù|Û|Ü)/", "/(ñ)/", "/(Ñ)/", "/(ç)/", "/(Ç)/"), explode(" ", "a A e E i I o O u U n N c C"), $string);
-    }
-
-    function mask($mask, $str)
-    {
-        $str = preg_replace('/[^0-9]/is', '', $str);
-        $str = str_replace(" ", "", $str);
-        for ($i = 0; $i < strlen($str); $i++)
-            $mask[strpos($mask, "#")] = $str[$i];
-        return $mask;
-    }
-
-    public function view($view, $parametros = null)
-    {
-        if ($parametros != null)
-            $view = $view . '?' . http_build_query($parametros);
-        header("Location: ." . DIRECTORY_SEPARATOR . $view);
-    }
-
+    /**
+     * URL relativa à aplicação: route('usuarios', ['id' => 1]) => "./usuarios?id=1".
+     */
     public function route($view, $parametros = null)
     {
-        return '.' . DIRECTORY_SEPARATOR . $view . ($parametros != null ? '?' . http_build_query($parametros) : '');
+        return './' . ltrim((string) $view, '/\\') . ($parametros != null ? '?' . http_build_query($parametros) : '');
     }
 
     public function url($view, $parametros = null)
@@ -93,126 +33,58 @@ class CommandController
         return $view . ($parametros != null ? '?' . http_build_query($parametros) : '');
     }
 
+    /**
+     * Redireciona para uma rota relativa da aplicação e encerra a requisição.
+     * Substitui view() e msgbox(): combine com flash() para exibir uma mensagem no destino.
+     */
+    public function redirect($view, $parametros = null, int $status = 302): never
+    {
+        header('Location: ' . $this->route($view, $parametros), true, $status);
+        exit;
+    }
+
+    // ------------------------------------------------------------------
+    // Mensagens flash (sobrevivem a um redirect e são lidas uma única vez)
+    // ------------------------------------------------------------------
+
+    public function flash(string $mensagem, string $tipo = 'info'): void
+    {
+        if (session_status() !== PHP_SESSION_ACTIVE) {
+            return;
+        }
+        $_SESSION[self::FLASH_KEY][] = ['tipo' => $tipo, 'mensagem' => $mensagem];
+    }
+
+    /**
+     * Retorna e limpa as mensagens flash pendentes. Escape a saída ao renderizar.
+     *
+     * @return array<int, array{tipo: string, mensagem: string}>
+     */
+    public function pullFlash(): array
+    {
+        $mensagens = $_SESSION[self::FLASH_KEY] ?? [];
+        unset($_SESSION[self::FLASH_KEY]);
+
+        return is_array($mensagens) ? $mensagens : [];
+    }
+
+    // ------------------------------------------------------------------
+    // CSRF
+    // ------------------------------------------------------------------
+
     public function csrf_field()
     {
-        return '<input type="hidden" name="_token" value="' . $_SESSION['UUID'] . '">';
+        return '<input type="hidden" name="_token" value="' . htmlspecialchars((string) $this->csrf_token(), ENT_QUOTES, 'UTF-8') . '">';
     }
 
     public function csrf_token()
     {
-        return $_SESSION['UUID'];
+        return $_SESSION['UUID'] ?? '';
     }
 
-    function validaCPF($cpf)
-    {
-
-        // Extrai somente os números
-        $cpf = preg_replace('/[^0-9]/is', '', $cpf);
-
-        // Verifica se foi informado todos os digitos corretamente
-        if (strlen($cpf) != 11) {
-            return false;
-        }
-
-        // Verifica se foi informada uma sequência de digitos repetidos. Ex: 111.111.111-11
-        if (preg_match('/(\d)\1{10}/', $cpf)) {
-            return false;
-        }
-
-        // Faz o calculo para validar o CPF
-        for ($t = 9; $t < 11; $t++) {
-            for ($d = 0, $c = 0; $c < $t; $c++) {
-                $d += $cpf[$c] * (($t + 1) - $c);
-            }
-            $d = ((10 * $d) % 11) % 10;
-            if ($cpf[$c] != $d) {
-                return false;
-            }
-        }
-        return true;
-    }
-
-    function format_string($mask, $str, $ch = '#')
-    {
-        $c = 0;
-        $rs = '';
-        for ($i = 0; $i < strlen($mask); $i++)
-            if ($mask[$i] == $ch) {
-                $rs .= $str[$c];
-                $c++;
-            } else {
-                $rs .= $mask[$i];
-            }
-        return $rs;
-    }
-
-    public function formataData($data, $d = null, $t = null)
-    {
-        if ($data != null) {
-            $retorno = "";
-
-            $dt = explode(" ", $data);
-            $nd = implode("/", array_reverse(explode("-", $dt[0])));
-            if (isset($dt[1]))
-                $nt = $dt[1];
-
-            if ($d != null) {
-                $retorno .= $nd . " ";
-            }
-
-            if ($t != null) {
-                $retorno .= substr($nt, 0, -3) . " ";
-            }
-
-            return $retorno;
-        }
-    }
-
-    function getArrays()
-    {
-        return $this->arrays;
-    }
-
-    function setArrays($arrays)
-    {
-        $this->arrays = $this->requestArrayPost($arrays);
-    }
-
-    function getAllParametros()
-    {
-        return $this->parametros;
-    }
-
-    function getParametros($indice)
-    {
-        return $this->parametros[$indice];
-    }
-
-    function setParametros($nome = null)
-    {
-        $this->parametros = $this->requestArrayPost($nome != null ? $nome : 'params');
-    }
-
-    public function getDateTime($format)
-    {
-        $dateTime = new \DateTime();
-        return $dateTime->format($format);
-    }
-
-    public function requestFile($dado)
-    {
-        return isset($_FILES[$dado]) ? $_FILES[$dado] : null;
-    }
-
-    public function requestArrayGet($dado)
-    {
-        return $data = filter_input(INPUT_GET, $dado, FILTER_DEFAULT, FILTER_FORCE_ARRAY);
-    }
-
-    public function requestArrayPost($dado)
-    {
-        return $data = filter_input(INPUT_POST, $dado, FILTER_DEFAULT, FILTER_FORCE_ARRAY);
-    }
+    // ------------------------------------------------------------------
+    // Requisição
+    // ------------------------------------------------------------------
 
     public function requestPost($dado)
     {
@@ -224,69 +96,64 @@ class CommandController
         return filter_input(INPUT_GET, $dado);
     }
 
-    function msgbox($mensagem, $janela, $atributos = null)
+    // ------------------------------------------------------------------
+    // Atalhos legados (@deprecated — use OliviaLib\Support\*)
+    // ------------------------------------------------------------------
+
+    /** @deprecated Use Formatos::letraMaiuscula(). */
+    public function letra_maiuscula($string)
     {
-        echo "<script>alert('" . $mensagem . "');window.location.href = './" . $janela . ($atributos != null ? "?" . $atributos : "") . "';</script>";
+        return Formatos::letraMaiuscula($string);
     }
 
-    private function encrypt_decrypt($action, $string, $secret_key = null, $secret_iv = null)
+    /** @deprecated Use Formatos::mesPorExtenso(). Agora 1 => "Janeiro" e 12 => "Dezembro". */
+    public function mes_do_ano_por_extenso($mes)
     {
-        // Garante que $string seja string (ou vazio)
-        if (is_array($string)) {
-            // Se for array, pega o primeiro valor (comportamento comum em cookies/session)
-            $string = reset($string);
-        }
-
-        if (!is_string($string) && $string !== null) {
-            return false;
-        }
-
-        $string = $string ?? '';
-
-        // Resolve chaves (com fallback seguro)
-        $secret_key = $secret_key ?? ($_SESSION['secret_key'] ?? null);
-        $secret_iv  = $secret_iv  ?? ($_SESSION['secret_iv'] ?? null);
-
-        if (empty($secret_key) || empty($secret_iv)) {
-            return false;
-        }
-
-        $output = false;
-        $encrypt_method = "AES-256-CBC";
-
-        $key = hash('sha256', $secret_key);
-        $iv  = substr(hash('sha256', $secret_iv), 0, 16);
-
-        switch ($action) {
-            case 'encrypt':
-                $encrypted = openssl_encrypt($string, $encrypt_method, $key, 0, $iv);
-                if ($encrypted === false) {
-                    return false;
-                }
-                $output = base64_encode($encrypted);
-                break;
-
-            case 'decrypt':
-                // base64_decode strict + verificação
-                $decoded = base64_decode($string, true);
-                if ($decoded === false) {
-                    return false;
-                }
-
-                $output = openssl_decrypt($decoded, $encrypt_method, $key, 0, $iv);
-                break;
-        }
-
-        return $output;
+        return Formatos::mesPorExtenso($mes);
     }
 
-    function encryptIt($q, $secret_key = null, $secret_iv = null)
+    /** @deprecated Use Formatos::tirarAcentos(). */
+    public function tirarAcentos($string)
     {
-        return $this->encrypt_decrypt('encrypt', $q, $secret_key, $secret_iv);
+        return Formatos::tirarAcentos($string);
     }
 
-    function decryptIt($q, $secret_key = null, $secret_iv = null)
+    /** @deprecated Use Formatos::mask(). */
+    public function mask($mask, $str)
     {
-        return $this->encrypt_decrypt('decrypt', $q, $secret_key, $secret_iv);
+        return Formatos::mask($mask, $str);
+    }
+
+    /** @deprecated Use Formatos::validaCpf(). */
+    public function validaCPF($cpf)
+    {
+        return Formatos::validaCpf($cpf);
+    }
+
+    /** @deprecated Use Formatos::formatString(). */
+    public function format_string($mask, $str, $ch = '#')
+    {
+        return Formatos::formatString($mask, $str, $ch);
+    }
+
+    /** @deprecated Use Formatos::formataData(). */
+    public function formataData($data, $d = null, $t = null)
+    {
+        return Formatos::formataData($data, $d, $t);
+    }
+
+    /** @deprecated Use Crypto::encrypt(). $secret_iv é ignorado no formato v2. */
+    public function encryptIt($q, $secret_key = null, $secret_iv = null)
+    {
+        return Crypto::encrypt($q, $secret_key);
+    }
+
+    /**
+     * @deprecated Use Crypto::decrypt() (somente v2). Valores CBC legados só são lidos com
+     * OLIVIA_CRYPTO_LEGACY=true (usando $secret_iv, se informado) ou via Crypto::decryptLegacy().
+     */
+    public function decryptIt($q, $secret_key = null, $secret_iv = null)
+    {
+        return Crypto::decryptCompat($q, $secret_key, $secret_iv);
     }
 }

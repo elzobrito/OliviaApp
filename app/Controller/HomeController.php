@@ -4,9 +4,6 @@ namespace OliviaApp\Controller;
 
 use OliviaLib\CommandController;
 use OliviaPublico\E404;
-use OliviaPublico\Login\Index;
-use OliviaPublico\Login\LostPassword;
-use OliviaPublico\Login\ResetPassword;
 use OliviaPublico\Home\Index as IndexHome;
 
 class HomeController extends CommandController
@@ -33,6 +30,9 @@ class HomeController extends CommandController
 
     public function error404()
     {
+        if (!headers_sent()) {
+            http_response_code(404);
+        }
         $parametros = $this->config_controller();
         new E404($parametros);
     }

@@ -2,10 +2,13 @@
 
 namespace OliviaDatabaseModel;
 
+use OliviaDatabaseLibrary\ConnectionManager;
 use OliviaDatabaseLibrary\QueryBuilder;
 use OliviaDatabaseLibrary\Model as iModel;
+use OliviaLib\Support\Crypto;
 use OliviaLib\Database;
 
+#[\AllowDynamicProperties]
 class Model implements iModel
 {
     protected $table;
@@ -14,24 +17,45 @@ class Model implements iModel
     protected $atributos = array();
 
     /**
-     * @var array
+     * Campos que request()/request_cripto() nunca preenchem a partir de $_REQUEST
+     * quando a lista de campos não é informada explicitamente (proteção contra
+     * atribuição em massa). Sobrescreva no model para ajustar; atribua esses campos
+     * manualmente ou passe uma lista explícita em request(['campo', ...]).
      */
-    private $clausules = [];
+    protected $guarded = [
+        'id',
+        'password',
+        'senha',
+        'remember_token',
+        'tipo',
+        'subTipo',
+        'status',
+        'role',
+        'roles',
+        'is_admin',
+        'admin',
+        'is_superuser',
+        'superuser',
+        'permissoes',
+        'permissions',
+        'nivel',
+        'perfil',
+        'privilegios',
+        'created_at',
+        'updated_at',
+        'deleted_at',
+    ];
 
     /**
-     * @param $name
-     * @param $arguments
-     * @return $this
+     * Executa $callback em uma transação na conexão deste model:
+     * commit no sucesso; rollback e relançamento da exceção na falha.
+     *
+     *   Pedido::transaction(function () use ($pedido, $itens) { ... });
      */
-    function __call($name, $arguments)
+    public static function transaction(callable $callback)
     {
-        $clausule = $arguments[0];
-        if (count($arguments) > 1) {
-            $clausule = $arguments;
-        }
-        $this->clausules[strtolower($name)] = $clausule;
-
-        return $this;
+        $model = new static();
+        return ConnectionManager::get(Database::getDB($model->drive))->transaction($callback);
     }
 
     public function getTable()
@@ -57,28 +81,55 @@ class Model implements iModel
 
     public function delete($id = null, $primaryKey = 'id')
     {
+        $primaryKey = $primaryKey ?? 'id';
+        $value = $id ?? ($this->{$primaryKey} ?? null);
+        if ($value === null || $value === '') {
+            throw new \InvalidArgumentException('Model::delete requer um identificador.');
+        }
 
         return (new QueryBuilder(Database::getDB($this->drive)))
             ->table($this->table)
             ->where([$primaryKey . ' = ?'])
-            ->delete([$id ?? isset($this->id)]);
+            ->delete([$value]);
     }
 
 
+    /**
+     * Exclusão com filtro/join. group, having e limit não são suportados de forma portável e são
+     * rejeitados (antes eram descartados em silêncio, apagando todo o conjunto filtrado).
+     * Com join usa a sintaxe multi-tabela do MySQL.
+     */
     public function deleteFull($id = null, $primaryKey = null, $wheres = null, $values = null, $join = null, $group = null, $having = null, $limit = null)
     {
-        if ($id || isset($this->id)) {
-            $value = $id ?? isset($this->id);
-            $qb = new QueryBuilder(Database::getDB($this->drive));
-            return $qb
-                ->table($this->table)
-                ->where($wheres ?? [($primaryKey ?? 'id') . ' = ?'])
-                ->join($join)
-                ->group($group)
-                ->having($having)
-                ->limit($limit)
-                ->delete($values ?? [$value]);
+        foreach (['group' => $group, 'having' => $having, 'limit' => $limit] as $nome => $valor) {
+            if ($valor !== null && $valor !== '' && $valor !== []) {
+                throw new \InvalidArgumentException("Model::deleteFull não suporta {$nome}; restrinja pelo where.");
+            }
         }
+
+        $primaryKey = $primaryKey ?? 'id';
+        $value = $id ?? ($this->{$primaryKey} ?? null);
+        if (($value === null || $value === '') && $values === null) {
+            throw new \InvalidArgumentException('Model::deleteFull requer um identificador ou valores.');
+        }
+
+        $temJoin = $join !== null && $join !== '' && $join !== [];
+        if ($wheres !== null && ($wheres === '' || $wheres === [])) {
+            throw new \InvalidArgumentException('Model::deleteFull exige where; um where vazio apagaria todo o conjunto.');
+        }
+        // Com join, a chave primária é qualificada pelo alias (ou nome) da tabela do model para não ficar ambígua.
+        $partesTabela = preg_split('/\s+/', trim((string) $this->table));
+        $pkWhere = ($temJoin ? end($partesTabela) . '.' : '') . $primaryKey . ' = ?';
+
+        $qb = (new QueryBuilder(Database::getDB($this->drive)))
+            ->table($this->table)
+            ->where($wheres ?? [$pkWhere]);
+
+        if ($temJoin) {
+            return $qb->join($join)->deleteFull($values ?? [$value]);
+        }
+
+        return $qb->delete($values ?? [$value]);
     }
 
     public function find($fields, $wheres, $values, $join = null, $group = null, $order = null, $having = null, $limit = null)
@@ -92,7 +143,7 @@ class Model implements iModel
             ->order($order)
             ->having($having)
             ->limit($limit)
-            ->select($values);
+            ->select($values ?? []);
     }
 
     public function find_table($fields, $wheres, $values, $join = null, $group = null, $order = null, $having = null, $limit = null, $table = null)
@@ -106,7 +157,7 @@ class Model implements iModel
             ->order($order)
             ->having($having)
             ->limit($limit)
-            ->select($values);
+            ->select($values ?? []);
     }
 
 
@@ -133,7 +184,7 @@ class Model implements iModel
             ->order($order)
             ->having($having)
             ->limit($limit)
-            ->select($values);
+            ->select($values ?? []);
     }
 
     public function findForId($id, $primaryKey = null, $fields = null, $join = null, $order = null, $limit = null)
@@ -150,44 +201,57 @@ class Model implements iModel
 
     public function values()
     {
-        $filds = [];
         $array = [];
-        $filds = $this->fill();
-        foreach ($this as $key => $value) {
-            if (in_array($key, $filds))
-                $array[] = $value;
+        foreach ($this->fill() as $field) {
+            $array[] = $this->{$field} ?? null;
         }
         return $array;
     }
 
 
-    public function request_cripto()
+    /**
+     * Campos que podem ser preenchidos a partir da requisição.
+     * Lista explícita do desenvolvedor é respeitada; caso contrário fillable menos guarded.
+     */
+    public function massAssignable($fields = null): array
     {
-        $val_temp = null;
-        foreach ($this->fillable as $key => $value)
-            if (substr($value, 0, 2) == 'id') {
-                if (isset($_REQUEST[$value]))
-                    if (!is_numeric($_REQUEST[$value])) {
-                        $val_temp = $this->decryptIt($_REQUEST[$value]);
-                        if (is_numeric($val_temp)) {
-                            $this->$value = $val_temp;
-                        } else {
-                            $this->$value = $_REQUEST[$value];
-                        }
-                    } else {
-                        $this->$value = $_REQUEST[$value];
-                    }
-            } else {
-                $this->$value = $_REQUEST[$value];
+        if ($fields !== null) {
+            return array_values(array_filter((array) $fields, 'is_string'));
+        }
+
+        $guarded = array_map('strtolower', (array) $this->guarded);
+        return array_values(array_filter(
+            (array) $this->fillable,
+            fn ($field) => is_string($field) && !in_array(strtolower($field), $guarded, true)
+        ));
+    }
+
+    public function request_cripto($fields = null)
+    {
+        foreach ($this->massAssignable($fields) as $value) {
+            if (!isset($_REQUEST[$value])) {
+                continue;
             }
+
+            $input = $_REQUEST[$value];
+            if (substr($value, 0, 2) === 'id' && !is_numeric($input)) {
+                $decrypted = Crypto::decrypt($input);
+                if (is_numeric($decrypted)) {
+                    $input = $decrypted;
+                }
+            }
+
+            $this->$value = $input;
+        }
     }
 
     public function request($fields = null)
     {
-        $campos = $fields ?? $this->fillable;
-        foreach ($campos as $key => $value)
-            if (isset($_REQUEST[$value]))
+        foreach ($this->massAssignable($fields) as $value) {
+            if (isset($_REQUEST[$value])) {
                 $this->$value = $_REQUEST[$value];
+            }
+        }
     }
 
     public function fill()

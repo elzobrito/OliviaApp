@@ -88,7 +88,7 @@ Regras:
 
 ### Skeleton (permanece neste repositório)
 
-`app/`, `publico/`, `index.php`, `HomeController`, `AuthController`, models demo. Não entram no contrato do kernel publicado além do autoload.
+`app/`, `publico/`, `index.php`, `HomeController` (rotas `/`, `/livez` e `/error404`), o middleware `RequestPost` e models demo. `AuthController` e o middleware `RequestGet` foram removidos (`OLIVIA-CLEAN-307`). Não entram no contrato do kernel publicado além do autoload.
 
 ## Runtime e qualidade
 

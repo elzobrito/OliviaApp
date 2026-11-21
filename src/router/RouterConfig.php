@@ -34,17 +34,11 @@ class RouterConfig
         $this->csrfToken = $csrfToken;
     }
 
+    /**
+     * Lê a configuração somente da sessão. O parâmetro $cookies é ignorado
+     * (mantido por compatibilidade de assinatura): cookies nunca alteram CSRF ou namespaces.
+     */
     public static function fromGlobals(?array $cookies = null, ?array $session = null): self
-    {
-        return self::fromContextStore(new SessionContextStore($session));
-    }
-
-    public static function fromRequestData(array $requestData, ?array $session = null): self
-    {
-        return self::fromGlobals(null, $session);
-    }
-
-    public static function fromRequest(Request $request, ?array $session = null): self
     {
         return self::fromContextStore(new SessionContextStore($session));
     }

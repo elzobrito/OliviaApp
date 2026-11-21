@@ -2,10 +2,9 @@
 
 namespace OliviaLib;
 
-use OliviaLib\CommandController;
 use OliviaRouter\Router;
 
-class Route extends CommandController
+class Route
 {
     public function execute()
     {
@@ -15,46 +14,34 @@ class Route extends CommandController
         $router->get('/livez', 'HomeController#livez');
         $router->get('/error404', 'HomeController#error404');
 
-        /**
-         * TEST ROUTE
+        /*
+         * Rotas de aplicação com middleware de CSRF, por exemplo:
+         *
+         * $router->middleware('RequestPost')->post('/minha-rota', 'MeuController#salvar');
+         * $router->middleware(null); // encerra o escopo do middleware
+         *
+         * Parâmetros de rota usam a sintaxe {nome}: '/usuario/{id}'.
          */
-        $this->execute_action_test($router, null, 'HomeController', 'olivia');
 
         $router->execute($_SERVER);
 
-        if ($_SESSION['e404']) {
-            $scheme = (!empty($_SERVER['HTTPS']) && $_SERVER['HTTPS'] !== 'off') ? 'https' : 'http';
-            $basePath = isset($_SESSION['BASE_PATH']) ? rtrim($_SESSION['BASE_PATH'], '/') : '';
-            header('Location: ' . $scheme . '://' . $_SERVER['HTTP_HOST'] . $basePath . '/error404');
+        if (!empty($_SESSION['e404'])) {
+            header('Location: ' . self::notFoundLocation($_SESSION['BASE_PATH'] ?? ''), true, 302);
+            exit;
         }
     }
 
-    private function execute_action_test($router, $middleware, $controller, $name)
+    /**
+     * Destino do redirect de 404: caminho relativo à raiz do host, sem usar HTTP_HOST
+     * (que é controlado pelo cliente e permitiria redirect aberto / envenenamento de cache).
+     */
+    public static function notFoundLocation($basePath): string
     {
-        $url_nome = '/' . $name;
-        $url_value_get[] = $url_nome . '-esqueci-senha{:param}';
-        $url_value_get[] = $url_nome . '-login{:param}';
-        $url_value_post[] = $url_nome . '-upload-test';
-        $url_value_post[] = $url_nome . '-recuperar-senha';
-        $url_value_post[] = $url_nome . '-salvar-senha';
-
-        $this->execute_action_get($router, $middleware, $controller, $url_value_get);
-        $this->execute_action_post($router, $middleware, $controller, $url_value_post);
-    }
-
-    private function execute_action_get($router, $middleware, $controller, $url_value_get)
-    {
-        foreach ($url_value_get as $key => $url) {
-            $url_explode = explode('/', $url);
-            $router->middleware($middleware)->get($url, $controller . '#' . str_replace('{:param}', '', implode('_', explode('-',  $url_explode[count($url_explode) - 1]))));
+        $basePath = '/' . trim(str_replace('\\', '/', (string) $basePath), '/');
+        if ($basePath === '/' || preg_match('#^/[A-Za-z0-9._~\-/]*$#', $basePath) !== 1 || strpos($basePath, '//') !== false || preg_match('#(^|/)\.\.?(/|$)#', $basePath) === 1) {
+            $basePath = '';
         }
-    }
 
-    private function execute_action_post($router, $middleware, $controller, $url_value_post)
-    {
-        foreach ($url_value_post as $key => $url) {
-            $url_explode = explode('/', $url);
-            $router->middleware($middleware)->post($url, $controller . '#' . implode('_', explode('-',  $url_explode[count($url_explode) - 1])));
-        }
+        return $basePath . '/error404';
     }
 }
