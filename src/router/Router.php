@@ -59,14 +59,28 @@ class Router
         $routerDispatcher->dispatch($request_data);
     }
 
+    /**
+     * Define o(s) middleware(s) das rotas registradas a seguir (até nova chamada;
+     * use middleware(null) para encerrar o escopo).
+     *
+     * @param string|string[]|null $middleware
+     */
+    public function middleware(...$middleware): self
+    {
+        $clause = $middleware[0] ?? null;
+        if (count($middleware) > 1) {
+            $clause = $middleware;
+        }
+        $this->clauses['middleware'] = $clause;
+        return $this;
+    }
+
+    /**
+     * Métodos desconhecidos falham alto em vez de virarem cláusulas silenciosas.
+     */
     public function __call($name, $arguments)
     {
-        $clause = $arguments[0] ?? null;
-        if (count($arguments) > 1) {
-            $clause = $arguments;
-        }
-        $this->clauses[strtolower($name)] = $clause;
-        return $this;
+        throw new \BadMethodCallException("Método Router::{$name}() não existe.");
     }
 
     public function getRoutes(): array

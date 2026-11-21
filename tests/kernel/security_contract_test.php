@@ -118,9 +118,18 @@ namespace {
         'password' => 'secret',
         'ssl' => false,
     ]);
+    // Mesma resolução do Connection: Pdo\Mysql::ATTR_* (PHP 8.4+), PDO::MYSQL_ATTR_* antigo, ou o valor
+    // numérico quando pdo_mysql não está carregado. Evita depreciações no 8.5 e erro fatal sem pdo_mysql.
+    $mysqlAttr = static function (string $nome, int $padrao): int {
+        if (defined('Pdo\\Mysql::ATTR_' . $nome)) {
+            return constant('Pdo\\Mysql::ATTR_' . $nome);
+        }
+        return defined('PDO::MYSQL_ATTR_' . $nome) ? constant('PDO::MYSQL_ATTR_' . $nome) : $padrao;
+    };
+    $sslVerifyAttr = $mysqlAttr('SSL_VERIFY_SERVER_CERT', 1014);
+    $sslCaAttr = $mysqlAttr('SSL_CA', 1012);
     $nonSslOptions = $nonSslRemote->mysqlClientOptions();
-    assert_true($nonSslOptions[PDO::MYSQL_ATTR_SSL_VERIFY_SERVER_CERT] === false, 'explicit ssl=false disables cert verify');
-    $sslCaAttr = defined('PDO::MYSQL_ATTR_SSL_CA') ? PDO::MYSQL_ATTR_SSL_CA : 1012;
+    assert_true($nonSslOptions[$sslVerifyAttr] === false, 'explicit ssl=false disables cert verify');
     assert_true(!array_key_exists($sslCaAttr, $nonSslOptions), 'ssl=false does not set MYSQL_ATTR_SSL_CA');
     $mandatoryTls = false;
     try {
@@ -138,7 +147,7 @@ namespace {
         'ssl' => false,
     ]);
     $localOptions = $local->mysqlClientOptions();
-    assert_true($localOptions[PDO::MYSQL_ATTR_SSL_VERIFY_SERVER_CERT] === false, 'loopback MySQL may disable cert verify');
+    assert_true($localOptions[$sslVerifyAttr] === false, 'loopback MySQL may disable cert verify');
 
     $caFile = $root . '/src/database/BaltimoreCyberTrustRoot.crt.pem';
     assert_true(is_file($caFile), 'bundled TLS CA exists');
@@ -151,8 +160,8 @@ namespace {
         'ssl_ca' => $caFile,
     ]);
     $remoteOptions = $remote->mysqlClientOptions();
-    assert_true($remoteOptions[PDO::MYSQL_ATTR_SSL_VERIFY_SERVER_CERT] === true, 'remote MySQL verifies TLS certificate');
-    assert_true(($remoteOptions[PDO::MYSQL_ATTR_SSL_CA] ?? '') === $caFile, 'remote MySQL uses configured CA');
+    assert_true($remoteOptions[$sslVerifyAttr] === true, 'remote MySQL verifies TLS certificate');
+    assert_true(($remoteOptions[$sslCaAttr] ?? '') === $caFile, 'remote MySQL uses configured CA');
 
     $missingCa = false;
     try {

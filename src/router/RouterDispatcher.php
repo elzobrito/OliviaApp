@@ -41,12 +41,14 @@ class RouterDispatcher
                 continue;
             }
 
+            // CSRF antes de qualquer middleware: uma requisição forjada não pode disparar efeitos colaterais
+            // de middlewares (log, sessão, auditoria, chamadas externas) antes de ser rejeitada.
+            $this->validateCsrf($route, $request);
             if ($this->executeMiddlewares($route->getMiddleware()) === false) {
                 $this->matched = true;
                 $this->publishNotFoundState(false);
                 return;
             }
-            $this->validateCsrf($route, $request);
             $this->executeHandler($route->getControllerMethod(), $route->getParams(), $request);
 
             $this->matched = true;
@@ -61,8 +63,23 @@ class RouterDispatcher
             return;
         }
 
-        $token = $request->post('_token');
-        if ($token !== $this->config->getCsrfToken()) {
+        $expected = $this->config->getCsrfToken();
+        // Presença da chave e valor são coisas distintas: Request::post() devolve null tanto para chave
+        // ausente quanto para valor null, então a decisão usa o array bruto.
+        $post = $request->getPostData();
+        $presente = array_key_exists('_token', $post);
+        $token = $presente ? $post['_token'] : null;
+        if ($presente && !is_string($token)) {
+            // _token presente com tipo inválido (null, array, número...): rejeita, sem cair no header.
+            throw new \RuntimeException('CSRF token inválido ou ausente.');
+        }
+        if (!$presente || $token === '') {
+            // Requisições AJAX/JSON enviam o token no header X-CSRF-Token.
+            $server = $request->getServerData();
+            $token = $server['HTTP_X_CSRF_TOKEN'] ?? null;
+        }
+
+        if ($expected === '' || !is_string($token) || !hash_equals($expected, $token)) {
             throw new \RuntimeException('CSRF token inválido ou ausente.');
         }
     }

@@ -7,11 +7,11 @@
     "run": {
       "run_id": "RUN-0001",
       "status": "success",
-      "last_event_seq": 235,
-      "projection_hash_sha256": "50c8d511ff017dbac79fe126b3963ada271ebb68e7f27b81ba6b1a52aa57e9a6",
+      "last_event_seq": 333,
+      "projection_hash_sha256": "0986a2b9790be6f715453c60ed372e4bd04e950e35c69dc31d7e3398a6b0ac3f",
       "verify_status": "ok"
     },
-    "updated_at": "2026-11-09T17:14:44Z"
+    "updated_at": "2026-11-21T12:57:31Z"
   },
   "project": {
     "name": "esaa-core",
@@ -734,14 +734,814 @@
         ]
       },
       "completed_at": "2026-11-09T17:14:44Z"
+    },
+    {
+      "task_id": "OLIVIA-FIX-300",
+      "task_kind": "impl",
+      "title": "Corrigir defeitos criticos do kernel (CRUD, rotas, middlewares, Email)",
+      "description": "Corrige os itens criticos da analise de 2026-11-20: executeUpdate/executeDelete ausentes; Model::delete com isset() apagando id=1; ordem campos/valores em Model::values; request_cripto chamando decryptIt inexistente; DSN sqlite; rotas demo {:param} que nunca casam e apontam para metodos inexistentes; imports invalidos no HomeController; middleware RequestGet com classe RequestPost e metodo index em vez de handle; Email com import invalido, credenciais fixas, anexos null e path traversal. Adiciona teste de comportamento com SQLite.",
+      "status": "done",
+      "depends_on": [],
+      "targets": [
+        "src/database/Connection.php",
+        "src/database-model/Model.php",
+        "lib/Route.php",
+        "app/Controller/HomeController.php",
+        "app/Middleware/RequestGet.php",
+        "app/Middleware/RequestPost.php",
+        "lib/Email.php",
+        "tests/kernel/behavior_test.php",
+        ".github/workflows/quality.yml"
+      ],
+      "outputs": {
+        "files": [
+          "src/database/Connection.php",
+          "src/database-model/Model.php",
+          "lib/Route.php",
+          "app/Controller/HomeController.php",
+          "app/Middleware/RequestGet.php",
+          "app/Middleware/RequestPost.php",
+          "lib/Email.php",
+          "tests/kernel/behavior_test.php",
+          ".github/workflows/quality.yml"
+        ]
+      },
+      "immutability": {
+        "done_is_immutable": true
+      },
+      "boundary_grant": [
+        "src/database/Connection.php",
+        "src/database-model/Model.php",
+        "lib/Route.php",
+        "app/Controller/HomeController.php",
+        "app/Middleware/RequestGet.php",
+        "app/Middleware/RequestPost.php",
+        "lib/Email.php",
+        "tests/kernel/behavior_test.php",
+        ".github/workflows/quality.yml"
+      ],
+      "task_type": "hotfix",
+      "acceptance_criteria": [
+        "QueryBuilder update/delete/deleteFull executam sem erro fatal e retornam linhas afetadas.",
+        "Model::delete sem id usa o id real do model e nunca o booleano de isset().",
+        "Model::values segue a ordem de fillable.",
+        "Rotas registradas em lib/Route.php apontam apenas para metodos existentes; middlewares usam handle e nomes de classe corretos.",
+        "Email le configuracao SMTP do ambiente, tolera anexos null e restringe anexos ao diretorio de upload.",
+        "tests/kernel/behavior_test.php cobre CRUD via SQLite e roteamento, e passa junto com os testes existentes no CI."
+      ],
+      "required_review_mode": "regression",
+      "assigned_to": "agent-impl",
+      "started_at": "2026-11-20T13:25:17Z",
+      "verification": {
+        "checks": [
+          "php -l em lib src app tests sem erros",
+          "framework_contract_test.php passou",
+          "security_contract_test.php passou",
+          "behavior_test.php passou (25 checks: CRUD SQLite, router, CSRF, middlewares, Email)"
+        ]
+      },
+      "completed_at": "2026-11-20T13:40:29Z"
+    },
+    {
+      "task_id": "OLIVIA-SEC-301",
+      "task_kind": "impl",
+      "title": "QueryBuilder: validar identificadores e bloquear SQL injection estrutural",
+      "description": "table, fields, order, group e limit sao concatenados crus. Validar identificadores (regex de coluna/alias, direcao ASC/DESC, limit inteiro) e documentar que where/join/having aceitam apenas SQL do desenvolvedor com placeholders.",
+      "status": "done",
+      "depends_on": [
+        "OLIVIA-FIX-300"
+      ],
+      "targets": [
+        "src/database/QueryBuilder.php",
+        "src/database-model/Model.php",
+        "tests/kernel/behavior_test.php"
+      ],
+      "outputs": {
+        "files": [
+          "src/database/QueryBuilder.php",
+          "src/database-model/Model.php",
+          "tests/kernel/behavior_test.php",
+          "src/database/Raw.php",
+          "README.md"
+        ]
+      },
+      "immutability": {
+        "done_is_immutable": true
+      },
+      "boundary_grant": [
+        "src/database/Raw.php",
+        "README.md"
+      ],
+      "task_type": "hotfix",
+      "acceptance_criteria": [
+        "order/group/fields/table rejeitam entrada fora do padrao de identificador com InvalidArgumentException.",
+        "limit aceita apenas inteiros (offset, count).",
+        "Teste prova que subselect em order e rejeitado e que consultas legitimas seguem funcionando."
+      ],
+      "required_review_mode": "security",
+      "assigned_to": "agent-impl",
+      "started_at": "2026-11-20T13:46:22Z",
+      "verification": {
+        "checks": [
+          "php -l sem erros em lib src app tests",
+          "framework_contract_test.php e security_contract_test.php passaram",
+          "behavior_test.php passou: 44 checks, 11 ataques rejeitados (subselect/CASE/; em order, group, limit UNION/negativo, fields, table, insert, SET) e tabela intacta",
+          "regressao: col DESC/ASC, offset,count, N OFFSET M, alias, agregados DISTINCT, count(*) as total, Raw::sql"
+        ]
+      },
+      "completed_at": "2026-11-20T13:51:35Z"
+    },
+    {
+      "task_id": "OLIVIA-SEC-302",
+      "task_kind": "impl",
+      "title": "Bloquear atribuicao em massa e XSS em msgbox",
+      "description": "Model::request/request_cripto copiam qualquer campo de fillable vindo de $_REQUEST; adicionar $guarded com padrao para id/tipo/status/password/remember_token e permitir lista explicita. msgbox deve escapar mensagem e destino com json_encode/htmlspecialchars.",
+      "status": "done",
+      "depends_on": [
+        "OLIVIA-FIX-300"
+      ],
+      "targets": [
+        "src/database-model/Model.php",
+        "lib/CommandController.php",
+        "tests/kernel/behavior_test.php"
+      ],
+      "outputs": {
+        "files": [
+          "src/database-model/Model.php",
+          "lib/CommandController.php",
+          "tests/kernel/behavior_test.php",
+          "README.md"
+        ]
+      },
+      "immutability": {
+        "done_is_immutable": true
+      },
+      "boundary_grant": [
+        "src/database-model/Model.php",
+        "lib/CommandController.php",
+        "tests/kernel/behavior_test.php",
+        "README.md"
+      ],
+      "task_type": "hotfix",
+      "acceptance_criteria": [
+        "Campos em $guarded nunca sao atribuidos por request()/request_cripto().",
+        "msgbox nao permite injecao de JavaScript (teste com payload de aspas)."
+      ],
+      "required_review_mode": "security",
+      "assigned_to": "agent-impl",
+      "started_at": "2026-11-20T13:51:36Z",
+      "verification": {
+        "checks": [
+          "php -l sem erros",
+          "framework/security contract passaram",
+          "behavior_test.php passou: 52 checks; request/request_cripto ignoram campos guarded, lista explicita e override de guarded funcionam",
+          "msgbox: 3 payloads de quebra de aspas e </script> viram literais JS (um unico script, json_decode devolve o payload original)"
+        ]
+      },
+      "completed_at": "2026-11-20T13:55:43Z"
+    },
+    {
+      "task_id": "OLIVIA-SEC-303",
+      "task_kind": "impl",
+      "title": "Criptografia autenticada (AES-256-GCM) com chave do ambiente",
+      "description": "encrypt_decrypt usa AES-256-CBC com IV fixo derivado da sessao e sem MAC. Migrar para AES-256-GCM com IV aleatorio por mensagem, tag de autenticacao e chave de OLIVIA_APP_KEY (fallback de sessao apenas com aviso). Manter decrypt legado CBC somente leitura por compatibilidade.",
+      "status": "done",
+      "depends_on": [
+        "OLIVIA-SEC-302"
+      ],
+      "targets": [
+        "lib/CommandController.php",
+        "lib/Config.php",
+        "tests/kernel/behavior_test.php"
+      ],
+      "outputs": {
+        "files": [
+          "lib/CommandController.php",
+          "lib/Config.php",
+          "tests/kernel/behavior_test.php",
+          "README.md"
+        ]
+      },
+      "immutability": {
+        "done_is_immutable": true
+      },
+      "boundary_grant": [
+        "lib/CommandController.php",
+        "lib/Config.php",
+        "tests/kernel/behavior_test.php",
+        "README.md"
+      ],
+      "task_type": "hotfix",
+      "acceptance_criteria": [
+        "Mesma entrada gera textos cifrados diferentes.",
+        "Texto cifrado adulterado retorna false.",
+        "Valores legados CBC continuam decifraveis."
+      ],
+      "required_review_mode": "security",
+      "assigned_to": "agent-impl",
+      "started_at": "2026-11-20T13:55:44Z",
+      "verification": {
+        "checks": [
+          "php -l sem erros",
+          "framework/security contract passaram",
+          "behavior_test.php passou: 68 checks",
+          "mesma entrada gera cifras diferentes; adulteracao de ciphertext/IV/tag, truncamento e base64 invalido retornam false",
+          "legado CBC (sessao e chave explicita) decifravel; OLIVIA_APP_KEY sobrevive a troca de sessao; chave curta/tamanho errado/ausente falha fechado"
+        ]
+      },
+      "completed_at": "2026-11-20T14:12:06Z"
+    },
+    {
+      "task_id": "OLIVIA-SEC-304",
+      "task_kind": "impl",
+      "title": "Endurecer Upload",
+      "description": "Destino montado com REQUEST_URI, extensao do nome do cliente, chmod 0777, nome original preservado sem separador. Usar diretorio base configurado e fora do webroot por padrao, validar MIME real com finfo contra allowlist, bloquear extensoes executaveis, sempre renomear, remover chmod 0777, inicializar propriedades declaradas.",
+      "status": "done",
+      "depends_on": [
+        "OLIVIA-FIX-300"
+      ],
+      "targets": [
+        "src/upload/Upload.php",
+        "tests/kernel/behavior_test.php"
+      ],
+      "outputs": {
+        "files": [
+          "src/upload/Upload.php",
+          "lib/Email.php",
+          "tests/kernel/behavior_test.php",
+          "README.md"
+        ]
+      },
+      "immutability": {
+        "done_is_immutable": true
+      },
+      "boundary_grant": [
+        "src/upload/Upload.php",
+        "lib/Email.php",
+        "tests/kernel/behavior_test.php",
+        "README.md"
+      ],
+      "task_type": "hotfix",
+      "acceptance_criteria": [
+        "Destino nao depende de REQUEST_URI e resolve dentro do diretorio base.",
+        "Arquivo .php ou com MIME divergente da allowlist e rejeitado.",
+        "Nenhum chmod 0777."
+      ],
+      "required_review_mode": "security",
+      "assigned_to": "agent-impl",
+      "started_at": "2026-11-20T14:16:26Z",
+      "verification": {
+        "checks": [
+          "php -l sem erros",
+          "framework/security contract passaram",
+          "behavior_test.php passou: 149 checks",
+          "aceita PNG valido, renomeia UUID, destino dentro do base independente de REQUEST_URI, permissoes 0640/0750",
+          "rejeita 14 casos: php, phtml, dupla extensao, polyglot, MIME divergente, HTML, svg, fora da allowlist, sem extensao, pasta com .., tamanho, erro PHP, vazio; nada gravado fora do base",
+          "nenhum chmod 0777; arquivo nao enviado por HTTP recusado"
+        ]
+      },
+      "completed_at": "2026-11-20T14:24:17Z"
+    },
+    {
+      "task_id": "OLIVIA-SEC-305",
+      "task_kind": "impl",
+      "title": "Sessao, CSRF e redirects seguros",
+      "description": "Config: cookie SameSite=Lax, httponly, use_strict_mode, use_only_cookies, secure condicionado a HTTPS ou OLIVIA_FORCE_SECURE, token CSRF e chaves de sessao com random_bytes e Config::regenerateSession() para rotacao apos login. RouterDispatcher: hash_equals, token vazio rejeitado e leitura de X-CSRF-Token. lib/Route.php: redirect 404 relativo (sem HTTP_HOST) seguido de exit. O print_r do AuthController ja foi eliminado na OLIVIA-CLEAN-307 (arquivo removido).",
+      "status": "done",
+      "depends_on": [
+        "OLIVIA-SEC-303"
+      ],
+      "targets": [
+        "lib/Config.php",
+        "lib/Route.php",
+        "src/router/RouterDispatcher.php",
+        "app/Controller/AuthController.php",
+        "tests/kernel/behavior_test.php"
+      ],
+      "outputs": {
+        "files": [
+          "lib/Config.php",
+          "lib/Route.php",
+          "src/router/RouterDispatcher.php",
+          "tests/kernel/behavior_test.php",
+          "README.md"
+        ]
+      },
+      "immutability": {
+        "done_is_immutable": true
+      },
+      "boundary_grant": [
+        "lib/Config.php",
+        "lib/Route.php",
+        "src/router/RouterDispatcher.php",
+        "tests/kernel/behavior_test.php",
+        "README.md"
+      ],
+      "task_type": "hotfix",
+      "acceptance_criteria": [
+        "CSRF comparado com hash_equals e aceito via header X-CSRF-Token.",
+        "Redirect 404 nao usa HTTP_HOST.",
+        "Cookie de sessao com SameSite e use_strict_mode ativos."
+      ],
+      "required_review_mode": "security",
+      "assigned_to": "agent-impl",
+      "started_at": "2026-11-20T14:24:18Z",
+      "verification": {
+        "checks": [
+          "php -l sem erros",
+          "framework/security contract passaram",
+          "behavior_test.php passou: 164 checks",
+          "subprocessos: SameSite=Lax, HttpOnly, strict, only_cookies; Secure 0 em HTTP, 1 em HTTPS e com OLIVIA_FORCE_SECURE; token 64 hex; regenerateSession troca ID e token",
+          "CSRF: header X-CSRF-Token aceito, invalido rejeitado, token array rejeitado, token esperado vazio nunca valida",
+          "404: destinos sempre no mesmo host, sem HTTP_HOST, com exit"
+        ]
+      },
+      "completed_at": "2026-11-20T14:28:08Z"
+    },
+    {
+      "task_id": "OLIVIA-DB-306",
+      "task_kind": "impl",
+      "title": "Pool de conexoes, QueryBuilder por composicao e transacoes",
+      "description": "Cada operacao do Model abria um PDO novo (QueryBuilder extends Connection) e transacoes eram impossiveis. Criar ConnectionManager (pool por configuracao), QueryBuilder compondo ConnectionInterface, Model::transaction() com cache de sessao suspenso, retry simplificado (1 nova tentativa de conexao, timeout configuravel, sem retry de prepare, reconexao unica em server gone away fora de transacao), PDO::ATTR_PERSISTENT opcional e remover Connection::getInstance().",
+      "status": "done",
+      "depends_on": [
+        "OLIVIA-SEC-301"
+      ],
+      "targets": [
+        "src/database/Connection.php",
+        "src/database/ConnectionInterface.php",
+        "src/database/ConnectionManager.php",
+        "src/database/QueryBuilder.php",
+        "src/database-model/Model.php",
+        "src/cache/SessionCache.php",
+        "tests/kernel/behavior_test.php",
+        "README.md"
+      ],
+      "outputs": {
+        "files": [
+          "src/database/Connection.php",
+          "src/database/ConnectionInterface.php",
+          "src/database/ConnectionManager.php",
+          "src/database/QueryBuilder.php",
+          "src/database-model/Model.php",
+          "src/cache/SessionCache.php",
+          "tests/kernel/behavior_test.php",
+          "README.md"
+        ]
+      },
+      "immutability": {
+        "done_is_immutable": true
+      },
+      "boundary_grant": [
+        "src/database/Connection.php",
+        "src/database/ConnectionInterface.php",
+        "src/database/ConnectionManager.php",
+        "src/database/QueryBuilder.php",
+        "src/database-model/Model.php",
+        "src/cache/SessionCache.php",
+        "tests/kernel/behavior_test.php",
+        "README.md"
+      ],
+      "task_type": "maintenance",
+      "acceptance_criteria": [
+        "Mesma configuracao reutiliza o mesmo PDO; configuracoes diferentes usam PDOs diferentes.",
+        "Model::transaction() faz commit no sucesso e rollback com relancamento da excecao na falha.",
+        "QueryBuilder nao herda de Connection e aceita array de opcoes ou ConnectionInterface.",
+        "Falha de conexao nao bloqueia mais que 1 nova tentativa; prepare nao e repetido.",
+        "Connection::getInstance removido; testes de contrato e comportamento passam."
+      ],
+      "required_review_mode": "regression",
+      "assigned_to": "agent-impl",
+      "started_at": "2026-11-20T14:05:38Z",
+      "verification": {
+        "checks": [
+          "php -l sem erros",
+          "framework/security contract passaram",
+          "behavior_test.php passou: 89 checks",
+          "pool: mesma config = mesmo PDO, config diferente = outro PDO, 10 consultas sem novas conexoes, reset esvazia",
+          "transacoes: commit, rollback com relancamento, aninhada participa do rollback, leitura na transacao fora do cache",
+          "falhas: conexao falha em <1s, gone away reconecta 1x fora de transacao e nao reconecta dentro, erro SQL preserva mensagem e previous"
+        ]
+      },
+      "completed_at": "2026-11-20T14:12:07Z"
+    },
+    {
+      "task_id": "OLIVIA-CLEAN-307",
+      "task_kind": "impl",
+      "title": "Remover superficies desnecessarias e mover helpers do CommandController",
+      "description": "Remove msgbox, view, find_object, buscar_objeto_in_array, set/getArrays, set/get/getAllParametros, requestArrayGet/Post, requestFile, getDateTime, Model::__call, AuthController, middleware RequestGet, RouterConfig::fromRequestData/fromRequest; Router::__call restrito a middleware. Adiciona redirect() com exit e flash messages. Move formatacao (com correcao dos bugs de mes, formataData, mask, format_string) para OliviaLib\\Support\\Formatos e criptografia para OliviaLib\\Support\\Crypto, mantendo wrappers @deprecated no CommandController. lib/Route deixa de herdar CommandController. README documenta e alerta sobre Pdf::WriteHTML.",
+      "status": "done",
+      "depends_on": [
+        "OLIVIA-SEC-303",
+        "OLIVIA-DB-306"
+      ],
+      "targets": [
+        "lib/CommandController.php",
+        "lib/Support/Formatos.php",
+        "lib/Support/Crypto.php",
+        "lib/Route.php",
+        "src/router/RouterConfig.php",
+        "src/router/Router.php",
+        "src/database-model/Model.php",
+        "app/Controller/AuthController.php",
+        "app/Middleware/RequestGet.php",
+        "tests/kernel/behavior_test.php",
+        "tests/kernel/security_contract_test.php",
+        "README.md"
+      ],
+      "outputs": {
+        "files": [
+          "lib/CommandController.php",
+          "lib/Support/Formatos.php",
+          "lib/Support/Crypto.php",
+          "lib/Route.php",
+          "src/router/RouterConfig.php",
+          "src/router/Router.php",
+          "src/database-model/Model.php",
+          "app/Controller/AuthController.php",
+          "app/Middleware/RequestGet.php",
+          "tests/kernel/behavior_test.php",
+          "tests/kernel/security_contract_test.php",
+          "README.md"
+        ]
+      },
+      "immutability": {
+        "done_is_immutable": true
+      },
+      "boundary_grant": [
+        "lib/CommandController.php",
+        "lib/Support/Formatos.php",
+        "lib/Support/Crypto.php",
+        "lib/Route.php",
+        "src/router/RouterConfig.php",
+        "src/router/Router.php",
+        "src/database-model/Model.php",
+        "app/Controller/AuthController.php",
+        "app/Middleware/RequestGet.php",
+        "tests/kernel/behavior_test.php",
+        "tests/kernel/security_contract_test.php",
+        "README.md"
+      ],
+      "task_type": "maintenance",
+      "acceptance_criteria": [
+        "Funcoes removidas nao existem mais; chamada de metodo inexistente em Model lanca erro.",
+        "Helpers de formatacao e cripto continuam acessiveis pelo CommandController (deprecated) com o mesmo resultado das classes Support.",
+        "mes_do_ano_por_extenso(1) = Janeiro, (12) = Dezembro; mask e format_string nao geram lixo nem warnings; formataData sem hora nao gera warning.",
+        "redirect() encerra a requisicao e flash() substitui msgbox.",
+        "Todos os testes passam."
+      ],
+      "required_review_mode": "security",
+      "assigned_to": "agent-impl",
+      "started_at": "2026-11-20T14:12:08Z",
+      "verification": {
+        "checks": [
+          "php -l sem erros em lib src app tests publico",
+          "framework/security contract passaram",
+          "behavior_test.php passou: 124 checks",
+          "13 metodos removidos verificados; Model e Router lancam erro em metodo inexistente; AuthController e RequestGet ausentes",
+          "wrappers deprecated equivalem a Formatos sem warnings; mes 1=Janeiro 12=Dezembro; mask/formatString/formataData sem lixo",
+          "redirect() retorna never; flash/pullFlash le uma vez; csrf_field escapa token"
+        ]
+      },
+      "completed_at": "2026-11-20T14:16:24Z"
+    },
+    {
+      "task_id": "OLIVIA-CLEAN-308",
+      "task_kind": "impl",
+      "title": "Remover OliviaLib\\Email do kernel",
+      "description": "OliviaLib\\Email nao e usado pelo framework, depende de PHPMailer ausente do composer.json (proibido pela spec php85-alpine) e e superficie de ataque acoplada ao diretorio de upload. Remover lib/Email.php (exclusao via git rm durante o claim, registrada nas notas do complete, pois file_updates nao representa exclusao), retirar Email.php da lista de kernel do framework_contract_test, remover os checks de Email do behavior_test, atualizar README (namespaces, estrutura, OLIVIA_UPLOAD_DIR, nota de incompatibilidade) e a spec olivia-framework-php85-alpine. PRE-REQUISITO EXTERNO: o ATRIO deve antes possuir sua propria atrio/lib/Email.php (prefixo OliviaLib mesclado, copia local vence) ou migrar para symfony/mailer; nao executar o claim sem confirmacao humana desse passo.",
+      "status": "todo",
+      "depends_on": [
+        "OLIVIA-SEC-304"
+      ],
+      "targets": [
+        "lib/Email.php",
+        "tests/kernel/framework_contract_test.php",
+        "tests/kernel/behavior_test.php",
+        "README.md",
+        "docs/spec/olivia-framework-php85-alpine.md"
+      ],
+      "outputs": {
+        "files": [
+          "lib/Email.php",
+          "tests/kernel/framework_contract_test.php",
+          "tests/kernel/behavior_test.php",
+          "README.md",
+          "docs/spec/olivia-framework-php85-alpine.md"
+        ]
+      },
+      "immutability": {
+        "done_is_immutable": true
+      },
+      "boundary_grant": [
+        "lib/Email.php",
+        "tests/kernel/framework_contract_test.php",
+        "tests/kernel/behavior_test.php",
+        "README.md",
+        "docs/spec/olivia-framework-php85-alpine.md"
+      ],
+      "task_type": "maintenance",
+      "acceptance_criteria": [
+        "Confirmacao humana registrada de que o ATRIO ja possui envio de e-mail proprio antes do claim.",
+        "lib/Email.php nao existe e nenhuma referencia a OliviaLib\\Email resta em lib, src, app, publico e tests.",
+        "framework_contract_test, security_contract_test e behavior_test passam.",
+        "README e spec php85-alpine documentam a remocao como incompatibilidade e a alternativa (copia local no consumidor ou symfony/mailer)."
+      ],
+      "required_review_mode": "regression"
+    },
+    {
+      "task_id": "OLIVIA-DB-310",
+      "task_kind": "impl",
+      "title": "QueryBuilder e Model: metadados de clausula, limit 0, deleteFull, cache por conexao e replay de escrita",
+      "description": "Achados QA 1,2,3,8,9,10,13: metadados instruction/separator em arrays de group/order/limit permitem SQL estrutural (reproduzido com UNION); limit(0) descartado por empty(); Model::deleteFull descarta limit/group/having e apaga todo o filtro (reproduzido: limit 1 apagou 3); QueryBuilder::deleteFull usa sintaxe MySQL multi-tabela e quebra no SQLite e com alias; chave do SessionCache sem identidade da conexao e cache entre processos obsoleto; reconexao apos gone away repete escritas e nao valida driver; rollBack pode mascarar a causa; transacao aberta direto no PDO nao e detectada; guarded padrao sem is_superuser/permissoes/nivel/perfil.",
+      "status": "done",
+      "depends_on": [],
+      "targets": [
+        "src/database/QueryBuilder.php",
+        "src/database-model/Model.php",
+        "src/database/Connection.php",
+        "src/database/ConnectionInterface.php",
+        "src/cache/SessionCache.php",
+        "tests/kernel/behavior_test.php",
+        "README.md"
+      ],
+      "outputs": {
+        "files": [
+          "src/database/QueryBuilder.php",
+          "src/database-model/Model.php",
+          "src/database/Connection.php",
+          "src/database/ConnectionInterface.php",
+          "src/cache/SessionCache.php",
+          "tests/kernel/behavior_test.php",
+          "README.md"
+        ]
+      },
+      "immutability": {
+        "done_is_immutable": true
+      },
+      "boundary_grant": [
+        "src/database/QueryBuilder.php",
+        "src/database-model/Model.php",
+        "src/database/Connection.php",
+        "src/database/ConnectionInterface.php",
+        "src/cache/SessionCache.php",
+        "tests/kernel/behavior_test.php",
+        "README.md"
+      ],
+      "task_type": "hotfix",
+      "acceptance_criteria": [
+        "instruction e separator em arrays sao fixados pelo builder ou rejeitados; nenhum texto fora de Raw::sql entra em group/order/limit.",
+        "limit(0) e limit('0') geram LIMIT 0.",
+        "Model::deleteFull rejeita limit/group/having nao suportados em vez de descarta-los; QueryBuilder::deleteFull funciona sem join em SQLite e MySQL e rejeita join fora do MySQL.",
+        "Cache de consulta particionado pela identidade da conexao e desativavel; comportamento entre processos documentado.",
+        "Reconexao automatica so para leitura, so em MySQL 2006/2013, fora de transacao (inclusive transacao aberta no PDO); falha de rollBack preserva a excecao original.",
+        "guarded padrao inclui is_superuser, superuser, permissoes, permissions, nivel, perfil e privilegios.",
+        "Review emitido por runner diferente de claude-code (humano via human-terminal ou validador independente)."
+      ],
+      "required_review_mode": "security",
+      "assigned_to": "agent-impl",
+      "started_at": "2026-11-20T14:52:17Z",
+      "verification": {
+        "checks": [
+          "behavior_test.php: 280 checks OK no PHP 8.5.4 e no php:8.2-cli-alpine; framework/security contract OK; lint lib/src/app limpo",
+          "URIs codificadas file:%3Amemory%3A, file::memory%3A?cache=shared, file:privado?mode=%6Demory e file: (temporario) com query_cache=session: cache desligado; URI file: de arquivo: cache ligado",
+          "mutacoes: sem PRAGMA (1 FAIL), referencia forte em vez de WeakReference (1 FAIL), memo incorreta (2 FAIL); remover rawurldecode e equivalente (PRAGMA cobre) e sobrevive; 0 fatal"
+        ]
+      },
+      "completed_at": "2026-11-20T17:36:38Z"
+    },
+    {
+      "task_id": "OLIVIA-SEC-311",
+      "task_kind": "impl",
+      "title": "CSRF antes dos middlewares, token nao-string, Secure estrito e proxy confiavel",
+      "description": "Achados QA 4,11 e SEC-305 refutados: middlewares executam antes da validacao CSRF; _token nao-string cai no fallback do header; OLIVIA_FORCE_SECURE invalido desliga Secure em HTTPS; X-Forwarded-Proto aceito de qualquer origem. Tambem: RequestPost aceita X-CSRF-Token e a pagina de erro 404 responde com status 404.",
+      "status": "done",
+      "depends_on": [
+        "OLIVIA-DB-310"
+      ],
+      "targets": [
+        "src/router/RouterDispatcher.php",
+        "lib/Config.php",
+        "app/Middleware/RequestPost.php",
+        "app/Controller/HomeController.php",
+        "tests/kernel/behavior_test.php",
+        "README.md"
+      ],
+      "outputs": {
+        "files": [
+          "src/router/RouterDispatcher.php",
+          "lib/Config.php",
+          "app/Middleware/RequestPost.php",
+          "app/Controller/HomeController.php",
+          "tests/kernel/behavior_test.php",
+          "README.md"
+        ]
+      },
+      "immutability": {
+        "done_is_immutable": true
+      },
+      "boundary_grant": [
+        "src/router/RouterDispatcher.php",
+        "lib/Config.php",
+        "app/Middleware/RequestPost.php",
+        "app/Controller/HomeController.php",
+        "tests/kernel/behavior_test.php",
+        "README.md"
+      ],
+      "task_type": "hotfix",
+      "acceptance_criteria": [
+        "CSRF validado antes de qualquer middleware em metodos mutantes; middleware nao executa em requisicao forjada.",
+        "_token presente e nao-string rejeita sem fallback para header.",
+        "OLIVIA_FORCE_SECURE invalido e ignorado (deteccao automatica permanece) e registrado em log.",
+        "X-Forwarded-Proto so e considerado quando REMOTE_ADDR esta em OLIVIA_TRUSTED_PROXIES.",
+        "/error404 responde HTTP 404.",
+        "Review emitido por runner diferente de claude-code (humano via human-terminal ou validador independente)."
+      ],
+      "required_review_mode": "security",
+      "assigned_to": "agent-impl",
+      "started_at": "2026-11-20T17:37:55Z",
+      "verification": {
+        "checks": [
+          "behavior_test.php: 306 checks OK no PHP 8.5.4 e no php:8.2-cli-alpine; framework/security contract OK; lint limpo",
+          "checks explicitos: _token null/int/bool presente rejeitado com header valido; _token ausente e _token vazio usam o header; RequestPost null rejeitado e vazio usa header",
+          "mutacoes: isset no dispatcher (4 FAIL), isset no RequestPost (1), sem fallback para string vazia (1); 0 fatal. Trocar !presente por token===null no fallback e equivalente (presente nao-string ja foi rejeitado)"
+        ]
+      },
+      "completed_at": "2026-11-20T17:49:15Z"
+    },
+    {
+      "task_id": "OLIVIA-SEC-312",
+      "task_kind": "impl",
+      "title": "Upload: contencao antes do mkdir, validacao de Office/ZIP, extensoes nao mapeadas e bloqueio de storage no servidor",
+      "description": "Achados QA 5,6,7,15: mkdir ocorre antes da contencao (link simbolico pode criar diretorio fora da base); ZIP generico aceito como Office sem checar estrutura; extensoes nao mapeadas sem vinculo de MIME; storage/uploads fica sob a raiz que serve index.php; chmod sem tratamento de falha; propriedade permissao sem uso.",
+      "status": "done",
+      "depends_on": [
+        "OLIVIA-SEC-311"
+      ],
+      "targets": [
+        "src/upload/Upload.php",
+        ".htaccess",
+        "storage/.htaccess",
+        "tests/kernel/behavior_test.php",
+        "README.md"
+      ],
+      "outputs": {
+        "files": [
+          "src/upload/Upload.php",
+          ".htaccess",
+          "storage/.htaccess",
+          "tests/kernel/behavior_test.php",
+          "README.md"
+        ]
+      },
+      "immutability": {
+        "done_is_immutable": true
+      },
+      "boundary_grant": [
+        "src/upload/Upload.php",
+        ".htaccess",
+        "storage/.htaccess",
+        "tests/kernel/behavior_test.php",
+        "README.md"
+      ],
+      "task_type": "hotfix",
+      "acceptance_criteria": [
+        "Ancestrais validados (sem symlink fora da base) antes de criar diretorios.",
+        "DOCX/XLSX/PPTX exigem [Content_Types].xml e ODF exige mimetype; ZIP generico com extensao Office e rejeitado.",
+        "Extensao sem mapeamento de MIME so e aceita com MIME declarado pelo chamador.",
+        "Apache nega acesso direto a storage/; README orienta nginx/fpm.",
+        "Falha de chmod e reportada; propriedade sem uso removida mantendo a assinatura.",
+        "Review emitido por runner diferente de claude-code (humano via human-terminal ou validador independente)."
+      ],
+      "required_review_mode": "security",
+      "assigned_to": "agent-impl",
+      "started_at": "2026-11-20T17:51:27Z",
+      "verification": {
+        "checks": [
+          "php 8.5.4: behavior 337 OK, framework e security contract passed, inclusive com umask 077",
+          "php 8.2.35 alpine (sem ext-zip): behavior 336 OK com e sem umask 077, framework contract passed",
+          "lint php -l limpo em src lib app tests",
+          "mutacoes: 8/9 detectadas (sobrevive so o caminho de corrida)"
+        ]
+      },
+      "completed_at": "2026-11-20T21:12:18Z"
+    },
+    {
+      "task_id": "OLIVIA-SEC-313",
+      "task_kind": "impl",
+      "title": "Crypto: decrypt somente v2, leitura legada explicita, chave explicita valida e AAD por contexto",
+      "description": "Achado QA 12 e SEC-303 parciais: decrypt aceita CBC sem autenticacao na mesma API; chave explicita de tipo invalido cai no ambiente e de 1 caractere e aceita; AAD global fixo.",
+      "status": "done",
+      "depends_on": [
+        "OLIVIA-SEC-312"
+      ],
+      "targets": [
+        "lib/Support/Crypto.php",
+        "lib/CommandController.php",
+        "src/database-model/Model.php",
+        "tests/kernel/behavior_test.php",
+        "README.md"
+      ],
+      "outputs": {
+        "files": [
+          "lib/Support/Crypto.php",
+          "lib/CommandController.php",
+          "src/database-model/Model.php",
+          "tests/kernel/behavior_test.php",
+          "README.md"
+        ]
+      },
+      "immutability": {
+        "done_is_immutable": true
+      },
+      "boundary_grant": [
+        "lib/Support/Crypto.php",
+        "lib/CommandController.php",
+        "src/database-model/Model.php",
+        "tests/kernel/behavior_test.php",
+        "README.md"
+      ],
+      "task_type": "hotfix",
+      "acceptance_criteria": [
+        "Crypto::decrypt aceita somente v2; leitura CBC apenas via Crypto::decryptLegacy ou quando OLIVIA_CRYPTO_LEGACY=true.",
+        "Chave explicita nao-string ou com menos de 16 caracteres falha fechado.",
+        "encrypt/decrypt aceitam contexto opcional incluido no AAD; valor de um contexto nao decifra em outro.",
+        "Review emitido por runner diferente de claude-code (humano via human-terminal ou validador independente)."
+      ],
+      "required_review_mode": "security",
+      "assigned_to": "agent-impl",
+      "started_at": "2026-11-20T21:56:37Z",
+      "verification": {
+        "checks": [
+          "php 8.5.4: behavior 363 OK, framework e security contract passed, com umask 077",
+          "php 8.2.35 alpine: behavior 362 OK com e sem umask 077, framework contract passed",
+          "lint php -l limpo em src lib app tests",
+          "mutacoes novas: 9/9 detectadas"
+        ]
+      },
+      "completed_at": "2026-11-21T12:29:42Z"
+    },
+    {
+      "task_id": "OLIVIA-QA-314",
+      "task_kind": "impl",
+      "title": "Fortalecer behavior_test e corrigir documentacao de migracao e CI",
+      "description": "Achados QA 14,15 e secao 4: checks tautologicos ou frageis (deleteFull pelo Model, ordem/offset sem linha esperada, update com id 0, pool sem identidade, count >= 0, retries por tempo, throws generico, estado global sem restauracao, checks estaticos por string); depreciacoes PDO::MYSQL_ATTR_* no security_contract_test; README sem excecao do delete, variaveis SMTP, close() compartilhado e suite de comportamento no CI; rotas olivia ainda listadas; spec cita AuthController.",
+      "status": "done",
+      "depends_on": [
+        "OLIVIA-SEC-313"
+      ],
+      "targets": [
+        "tests/kernel/behavior_test.php",
+        "tests/kernel/security_contract_test.php",
+        "README.md",
+        "docs/spec/olivia-framework-php85-alpine.md"
+      ],
+      "outputs": {
+        "files": [
+          "tests/kernel/behavior_test.php",
+          "tests/kernel/security_contract_test.php",
+          "README.md",
+          "docs/spec/olivia-framework-php85-alpine.md"
+        ]
+      },
+      "immutability": {
+        "done_is_immutable": true
+      },
+      "boundary_grant": [
+        "tests/kernel/behavior_test.php",
+        "tests/kernel/security_contract_test.php",
+        "README.md",
+        "docs/spec/olivia-framework-php85-alpine.md"
+      ],
+      "task_type": "maintenance",
+      "acceptance_criteria": [
+        "Cada check fraco listado na secao 4 do relatorio QA reescrito para exigir classe de excecao, efeito ausente ou valor exato.",
+        "behavior_test restaura ambiente, sessao e superglobais entre grupos.",
+        "Suites sem depreciacoes com error_reporting=-1 no PHP 8.5.",
+        "README e spec sem divergencias apontadas pelo QA.",
+        "Review emitido por runner diferente de claude-code (humano via human-terminal ou validador independente)."
+      ],
+      "required_review_mode": "regression",
+      "assigned_to": "agent-impl",
+      "started_at": "2026-11-21T12:30:45Z",
+      "verification": {
+        "checks": [
+          "php 8.5.4: behavior 385 OK, framework e security contract passed, sem depreciacoes com error_reporting=-1, com umask 077 e com OLIVIA_APP_KEY/OLIVIA_QUERY_CACHE/OLIVIA_CRYPTO_LEGACY herdados",
+          "php 8.2.35 alpine (sem pdo_mysql e sem zip): behavior 385 OK, framework e security contract passed, sem depreciacoes, com umask 077",
+          "lint php -l limpo em src lib app tests; nenhum diretorio temporario remanescente",
+          "mutacoes de producao: 9/9 detectadas"
+        ]
+      },
+      "completed_at": "2026-11-21T12:57:31Z"
     }
   ],
   "indexes": {
     "by_status": {
-      "done": 18
+      "done": 31,
+      "todo": 1
     },
     "by_kind": {
-      "impl": 12,
+      "impl": 26,
       "qa": 3,
       "spec": 3
     }

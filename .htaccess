@@ -1,5 +1,9 @@
+# OLIVIA-SEC-312: storage/ (uploads, arquivos privados) nunca é servido diretamente.
+# A regra é relativa à pasta deste .htaccess (funciona em subpasta); storage/.htaccess nega
+# o acesso mesmo sem mod_rewrite.
 <IfModule mod_rewrite.c>
     RewriteEngine on
+    RewriteRule ^storage(?:/|$) - [NC,R=404,L]
     RewriteCond %{THE_REQUEST} /index.php [NC]
     RewriteRule ^(.*)index\.php$ /$1/ [R=301,L,NC,NE]
     Header set X-XSS-Protection "1; mode=block"
