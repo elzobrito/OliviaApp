@@ -4,10 +4,37 @@
     "esaa_version": "0.4.x",
     "generated_by": "esaa.project",
     "source_event_store": ".roadmap/activity.jsonl",
-    "last_event_seq": 333,
-    "updated_at": "2026-11-21T12:57:31Z"
+    "last_event_seq": 427,
+    "updated_at": "2026-11-24T18:42:57Z"
   },
   "issues": [
+    {
+      "issue_id": "ISS-OLIVIA-DB-315-NAMED-ARG",
+      "status": "resolved",
+      "severity": "medium",
+      "title": "getDB perde o argumento nomeado público name",
+      "baseline_id": null,
+      "affected": {},
+      "evidence": {
+        "symptom": "OliviaLib\\Database::getDB($name) foi substituído pelo método herdado ADatabase::getDB($driver). Chamadas PHP 8 com name: resultam em Error: Unknown named parameter $name, enquanto a chamada posicional resolve a configuração.",
+        "repro_steps": [
+          "Comparar a assinatura anterior de lib/Database.php no HEAD com a assinatura herdada em src/database/ADatabase.php.",
+          "Com OLIVIA_DB_DSN=sqlite::memory:, comparar OliviaLib\\Database::getDB(name: \"default\") e OliviaLib\\Database::getDB(\"default\")."
+        ]
+      },
+      "resolution": {
+        "status": "resolved_by_command"
+      },
+      "links": {
+        "reported_by_task_id": "OLIVIA-DB-315",
+        "fixes_task_id": null,
+        "hotfix_task_id": null
+      },
+      "timeline": {
+        "created_event_seq": 390,
+        "resolved_event_seq": 406
+      }
+    },
     {
       "issue_id": "ISS-OLIVIA-DB-SSL-001",
       "status": "resolved",
@@ -43,9 +70,121 @@
         "created_event_seq": 183,
         "resolved_event_seq": 221
       }
+    },
+    {
+      "issue_id": "ISS-OLIVIA-DOC-318-README-ROUTER",
+      "status": "open",
+      "severity": "low",
+      "title": "README ainda atribui indexação em árvore ao roteador",
+      "baseline_id": null,
+      "affected": {},
+      "evidence": {
+        "symptom": "O texto original da home e dois trechos do README descrevem uma árvore inexistente. RouterDispatcher percorre as rotas e Trie::searchRegex usa preg_match no caminho. README.md fica fora da permissão de escrita de DOC-318.",
+        "repro_steps": [
+          "Consultar README.md, abertura e descrição de src/router/.",
+          "Comparar com RouterDispatcher::dispatch e Trie::searchRegex, e corrigir o README no escopo documental correspondente."
+        ]
+      },
+      "resolution": null,
+      "links": {
+        "reported_by_task_id": "OLIVIA-DOC-318",
+        "fixes_task_id": null,
+        "hotfix_task_id": null
+      },
+      "timeline": {
+        "created_event_seq": 392,
+        "resolved_event_seq": null
+      }
+    },
+    {
+      "issue_id": "ISS-OLIVIA-SEC-316-PWFILE-STATCACHE",
+      "status": "open",
+      "severity": "medium",
+      "title": "DB_PASSWORD_FILE: limite de tamanho usa filesize() com cache de stat do PHP",
+      "baseline_id": null,
+      "affected": {},
+      "evidence": {
+        "symptom": "DatabaseConfig::password() chama is_file/is_readable e depois filesize(). O cache de stat do PHP guarda o tamanho da primeira consulta; se o arquivo de secret muda de tamanho no mesmo processo (rotacao em worker longo, testes), o limite de 4096 bytes e conferido contra o tamanho antigo: arquivo grande passa (le so 4096 bytes, senha truncada em silencio) e arquivo pequeno apos um grande e recusado. Reproduzido no PHP 8.2.35 (php:8.2-cli-alpine): behavior_test falha em 'SEC-316 arquivo de senha grande demais falha fechado' e para com 'Uncaught RuntimeException: DB_PASSWORD_FILE is larger than 4096 bytes.' no grupo QA-317. No PHP 8.5.4 os mesmos testes passam.",
+        "repro_steps": [
+          "docker run --rm -u $(id -u):$(id -g) -v $PWD:/app -w /app php:8.2-cli-alpine php -d error_reporting=-1 tests/kernel/behavior_test.php",
+          "Em PHP 8.2: escrever 'x' em REL_DB_PASSWORD_FILE, chamar getDB('relatorios'), reescrever com 4097 bytes e chamar de novo: nao lanca 'is larger than 4096 bytes.'",
+          "Correcao proposta: nao depender de filesize(); ler ate 4097 bytes e recusar quando strlen > 4096 (com clearstatcache do caminho antes das verificacoes)"
+        ]
+      },
+      "resolution": null,
+      "links": {
+        "reported_by_task_id": "OLIVIA-SEC-316",
+        "fixes_task_id": null,
+        "hotfix_task_id": "HF-ISS-OLIVIA-SEC-316-PWFILE-STATCACHE"
+      },
+      "timeline": {
+        "created_event_seq": 417,
+        "resolved_event_seq": null
+      }
+    },
+    {
+      "issue_id": "ISS-OLIVIA-SEC-321-BOUNDARY-001",
+      "status": "resolved",
+      "severity": "medium",
+      "title": "Upload.php gravado fora do boundary_grant da SEC-321 e aceito pelo orchestrator",
+      "baseline_id": null,
+      "affected": {},
+      "evidence": {
+        "symptom": "O complete do retrabalho da SEC-321 (evento 372, runner codex) levou file_updates para src/upload/Upload.php, e o evento 373 (orchestrator.file.write) gravou o arquivo. O boundary_grant da OLIVIA-SEC-321 e so [src/download/Download.php, tests/kernel/behavior_test.php, README.md], e nenhum task.amend ampliou essa lista entre os eventos 353 e 373. A mudanca em Upload::baseDirectory (preservar barra invertida no Linux) parece correta, mas entrou sem grant, e o orchestrator nao rejeitou a escrita fora do boundary.",
+        "repro_steps": [
+          "python3 -c 'import json; r=json.load(open(\".roadmap/roadmap.json\")); print([t[\"boundary_grant\"] for t in r[\"tasks\"] if t[\"task_id\"]==\"OLIVIA-SEC-321\"])' -> sem src/upload/Upload.php",
+          "sed -n 373p .roadmap/activity.jsonl -> payload.files inclui src/upload/Upload.php",
+          "grep -n '\"OLIVIA-SEC-321\"' .roadmap/activity.jsonl -> eventos 353,354,363-373, nenhum task.amend de boundary",
+          "Decidir: amend retroativo do grant (ou nova tarefa para Upload.php) e conferir por que o orchestrator nao aplicou o boundary_grant no complete"
+        ]
+      },
+      "resolution": {
+        "status": "resolved_by_command"
+      },
+      "links": {
+        "reported_by_task_id": "OLIVIA-SEC-321",
+        "fixes_task_id": null,
+        "hotfix_task_id": null
+      },
+      "timeline": {
+        "created_event_seq": 374,
+        "resolved_event_seq": 381
+      }
+    },
+    {
+      "issue_id": "ISS-OLIVIA-SEC-322-HEAD",
+      "status": "resolved",
+      "severity": "medium",
+      "title": "HEAD entra em loop no redirecionamento de erro",
+      "baseline_id": null,
+      "affected": {},
+      "evidence": {
+        "symptom": "O dispatcher pula a detecção de método para todo HEAD. Com o front controller real, HEAD / retorna 302 para /error404, que retorna 302 para si mesma. Uma rota existente não chega ao caminho 405 com Allow previsto no aceite.",
+        "repro_steps": [
+          "Consultar HEAD / e HEAD /error404 no php -S com index.php como front controller, sem seguir redirects.",
+          "Conferir Location: /error404 em ambas as respostas e ausência de Allow; GET / retorna 200 e POST / retorna 405 com Allow: GET."
+        ]
+      },
+      "resolution": {
+        "status": "resolved_by_command"
+      },
+      "links": {
+        "reported_by_task_id": "OLIVIA-SEC-322",
+        "fixes_task_id": null,
+        "hotfix_task_id": null
+      },
+      "timeline": {
+        "created_event_seq": 388,
+        "resolved_event_seq": 404
+      }
     }
   ],
   "indexes": {
-    "open_by_baseline": {}
+    "open_by_baseline": {
+      "unknown": [
+        "ISS-OLIVIA-DOC-318-README-ROUTER",
+        "ISS-OLIVIA-SEC-316-PWFILE-STATCACHE"
+      ]
+    }
   }
 }

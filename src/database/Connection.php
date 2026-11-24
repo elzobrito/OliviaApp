@@ -18,6 +18,10 @@ use Throwable;
  *   - persistent (bool; padrão OLIVIA_DB_PERSISTENT ou false)  — PDO::ATTR_PERSISTENT
  *
  * Use ConnectionManager::get($options) para reaproveitar a mesma conexão por configuração.
+ *
+ * Senha (OLIVIA-SEC-316): fica fora de $options, guardada numa closure; var_dump/print_r mostram
+ * "********" (__debugInfo), var_export não a alcança e o construtor marca $options com
+ * #[\SensitiveParameter] para stack traces. A conexão não pode ser serializada.
  */
 class Connection implements ConnectionInterface
 {
@@ -30,8 +34,9 @@ class Connection implements ConnectionInterface
     private ?array $classificacaoSqlite = null;
     private array $options = [];
     private int $transactionDepth = 0;
+    private \Closure $password;
 
-    public function __construct(array $options)
+    public function __construct(#[\SensitiveParameter] array $options)
     {
         // Verifica se as opções obrigatórias estão presentes
         if (!isset($options['host']) || !is_string($options['host'])) {
@@ -57,7 +62,30 @@ class Connection implements ConnectionInterface
             }
         }
 
+        $secret = $options['password'];
+        $this->password = static fn (): string => $secret;
+        unset($options['password']);
         $this->options = $options;
+    }
+
+    /**
+     * Dump sem a senha (var_dump, print_r, debug_zval_dump).
+     */
+    public function __debugInfo(): array
+    {
+        return [
+            'options' => ['password' => '********'] + $this->options,
+            'connected' => $this->pdo instanceof PDO,
+            'transactionDepth' => $this->transactionDepth,
+        ];
+    }
+
+    /**
+     * A senha não pode sair do processo por serialização (sessão, cache, filas).
+     */
+    public function __serialize(): array
+    {
+        throw new \LogicException('Connection não pode ser serializada.');
     }
 
     /**
@@ -84,7 +112,7 @@ class Connection implements ConnectionInterface
         $lastException = null;
         for ($attempt = 1; $attempt <= $attempts; $attempt++) {
             try {
-                $this->pdo = new PDO($this->dsn(), $this->options['user'], $this->options['password'], $pdoOptions);
+                $this->pdo = new PDO($this->dsn(), $this->options['user'], ($this->password)(), $pdoOptions);
                 $this->pdo->setAttribute(PDO::ATTR_ERRMODE, $pdoOptions[PDO::ATTR_ERRMODE]);
                 return $this->pdo;
             } catch (PDOException $e) {

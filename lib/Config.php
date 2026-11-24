@@ -9,15 +9,21 @@ namespace OliviaLib;
  * Secure quando a requisição é HTTPS, quando um proxy listado em OLIVIA_TRUSTED_PROXIES envia
  * X-Forwarded-Proto: https, ou com OLIVIA_FORCE_SECURE=true (valor inválido é ignorado e registrado em log).
  * Após login/troca de privilégio chame Config::regenerateSession().
+ *
+ * Headers de segurança (OLIVIA-SEC-320): enviados pelo PHP em toda resposta (Apache, nginx/FPM ou php -S).
+ * A CSP libera o <style> do skeleton por nonce por requisição (Config::cspNonce()); HSTS só em
+ * requisição segura. Para outra política, chame header('Content-Security-Policy: ...') depois do Config.
  */
 class Config
 {
+    private static ?string $cspNonce = null;
+
     public function __construct()
     {
+        self::sendSecurityHeaders();
         ini_set('display_errors', getenv('APP_DEBUG') === 'true' ? '1' : '0');
         ini_set('display_startup_errors', getenv('APP_DEBUG') === 'true' ? '1' : '0');
         error_reporting(E_ALL);
-        ini_set('memory_limit', '-1');
         setlocale(LC_MONETARY, 'pt_BR');
 
         self::startSession();
@@ -168,6 +174,68 @@ class Config
         }
 
         return false;
+    }
+
+    /**
+     * Nonce da CSP desta requisição (base64 de 16 bytes aleatórios); use em <style nonce="..."> e <script nonce="...">.
+     */
+    public static function cspNonce(): string
+    {
+        return self::$cspNonce ??= base64_encode(random_bytes(16));
+    }
+
+    /**
+     * Política CSP padrão: só a própria origem, estilo/script inline apenas com o nonce da requisição.
+     */
+    public static function contentSecurityPolicy(): string
+    {
+        $nonce = "'nonce-" . self::cspNonce() . "'";
+
+        return implode('; ', [
+            "default-src 'self'",
+            "script-src 'self' {$nonce}",
+            "style-src 'self' {$nonce}",
+            "img-src 'self' data:",
+            "font-src 'self' data:",
+            "connect-src 'self'",
+            "object-src 'none'",
+            "base-uri 'self'",
+            "form-action 'self'",
+            "frame-ancestors 'none'",
+        ]);
+    }
+
+    /**
+     * @return array<string, string> headers de segurança desta requisição (HSTS só quando isSecureRequest()).
+     */
+    public static function securityHeaders(): array
+    {
+        $headers = [
+            'Content-Security-Policy' => self::contentSecurityPolicy(),
+            'X-Content-Type-Options' => 'nosniff',
+            'X-Frame-Options' => 'DENY',
+            'Referrer-Policy' => 'same-origin',
+            'Permissions-Policy' => 'camera=(), microphone=(), geolocation=(), payment=(), usb=()',
+        ];
+        if (self::isSecureRequest()) {
+            $headers['Strict-Transport-Security'] = 'max-age=31536000';
+        }
+
+        return $headers;
+    }
+
+    /**
+     * Envia os headers de segurança (substituindo valores anteriores) e remove X-Powered-By.
+     */
+    public static function sendSecurityHeaders(): void
+    {
+        if (headers_sent()) {
+            return;
+        }
+        foreach (self::securityHeaders() as $nome => $valor) {
+            header($nome . ': ' . $valor, true);
+        }
+        header_remove('X-Powered-By');
     }
 
     /**

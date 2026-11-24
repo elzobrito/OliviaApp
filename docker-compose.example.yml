@@ -1,0 +1,98 @@
+# Olivia Framework — exemplo de stack com Docker Compose (OLIVIA-QA-317)
+#
+# Uso:
+#   cp .env.example .env                      # ajuste os valores; .env fica fora do git
+#   mkdir -p secrets
+#   openssl rand -base64 24 > secrets/db_password.txt
+#   openssl rand -base64 24 > secrets/db_root_password.txt
+#   chmod 0644 secrets/*.txt                  # o PHP-FPM roda como www-data e precisa ler o secret
+#   docker compose -f docker-compose.example.yml up -d --build
+#
+# A senha nunca aparece neste arquivo nem no .env: o MySQL e a app leem o mesmo arquivo de secret.
+# O usuário criado por MYSQL_USER recebe ALL no banco; em produção, restrinja com os GRANTs do README
+# (usuário da app só com SELECT/INSERT/UPDATE/DELETE e usuário separado para migrations).
+
+name: olivia
+
+services:
+  app:
+    build: .
+    env_file:
+      - path: .env
+        required: false
+    environment:
+      APP_DEBUG: ${APP_DEBUG:-false}
+      OLIVIA_DB_DSN: ${OLIVIA_DB_DSN:-mysql:host=db;port=3306;dbname=olivia}
+      DB_USERNAME: ${DB_USERNAME:-olivia_app}
+      DB_PASSWORD_FILE: /run/secrets/db_password
+      # "db" é outro container: para o framework é host remoto, e o TLS é exigido por padrão.
+      # O MySQL do exemplo usa certificado autoassinado, então o TLS está desligado de forma explícita,
+      # aceitável só nesta rede interna do Compose. Em produção, remova as duas linhas e use OLIVIA_DB_SSL_CA.
+      OLIVIA_DB_SSL: "false"
+      OLIVIA_DB_ALLOW_INSECURE: "true"
+      OLIVIA_UPLOAD_DIR: /var/www/storage/uploads
+    secrets:
+      - db_password
+    volumes:
+      - uploads:/var/www/storage/uploads
+    depends_on:
+      db:
+        condition: service_healthy
+    networks: [backend]
+
+  web:
+    image: nginx:1.27-alpine
+    ports:
+      - "127.0.0.1:8080:80"
+    configs:
+      - source: nginx_site
+        target: /etc/nginx/conf.d/default.conf
+    depends_on: [app]
+    networks: [backend]
+
+  db:
+    image: mysql:8.4
+    environment:
+      MYSQL_DATABASE: olivia
+      MYSQL_USER: ${DB_USERNAME:-olivia_app}
+      MYSQL_PASSWORD_FILE: /run/secrets/db_password
+      MYSQL_ROOT_PASSWORD_FILE: /run/secrets/db_root_password
+    secrets:
+      - db_password
+      - db_root_password
+    volumes:
+      - db_data:/var/lib/mysql
+    healthcheck:
+      test: ["CMD-SHELL", "mysqladmin ping -h 127.0.0.1 -uroot --password=\"$$(cat /run/secrets/db_root_password)\" --silent"]
+      interval: 5s
+      timeout: 5s
+      retries: 30
+    networks: [backend]
+
+secrets:
+  db_password:
+    file: ./secrets/db_password.txt
+  db_root_password:
+    file: ./secrets/db_root_password.txt
+
+configs:
+  nginx_site:
+    content: |
+      server {
+          listen 80;
+          root /var/www/html;
+          location / { try_files $$uri /index.php$$is_args$$args; }
+          location ~ \.php$ {
+              include fastcgi_params;
+              fastcgi_pass app:9000;
+              fastcgi_param SCRIPT_FILENAME /var/www/html/index.php;
+              fastcgi_param SCRIPT_NAME /index.php;
+          }
+      }
+
+volumes:
+  db_data:
+  uploads:
+
+networks:
+  backend:

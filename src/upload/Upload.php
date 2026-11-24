@@ -107,7 +107,7 @@ class Upload
 
         $base = $configured !== '' ? (string) $configured : dirname(__DIR__, 2) . DIRECTORY_SEPARATOR . 'storage' . DIRECTORY_SEPARATOR . 'uploads';
 
-        return rtrim($base, '/\\');
+        return rtrim($base, DIRECTORY_SEPARATOR === '\\' ? '/\\' : '/');
     }
 
     /**
@@ -361,7 +361,7 @@ class Upload
         // Ancestrais ausentes da base são criados um a um, cada um com 0750 explícito; os já existentes
         // (geridos pelo operador) não são alterados.
         $ausentes = [];
-        for ($p = rtrim($base, '/\\'); $p !== '' && !file_exists($p) && !is_link($p); $p = dirname($p)) {
+        for ($p = $base; $p !== '' && !file_exists($p) && !is_link($p); $p = dirname($p)) {
             array_unshift($ausentes, $p);
             if (dirname($p) === $p) {
                 break;

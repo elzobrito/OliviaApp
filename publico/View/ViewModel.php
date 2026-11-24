@@ -105,7 +105,7 @@ abstract class ViewModel extends CommandController
             <meta charset="utf-8">
             <meta name="viewport" content="width=device-width, initial-scale=1">
             <title>Olívia</title>
-            <style>
+            <style nonce="<?= htmlspecialchars(\OliviaLib\Config::cspNonce(), ENT_QUOTES, 'UTF-8') ?>">
                 :root {
                     color-scheme: dark;
                     --bg: #0d1321;
@@ -224,8 +224,8 @@ abstract class ViewModel extends CommandController
                 }
 
                 .hero-copy h2 {
-                    font-size: clamp(2.5rem, 6vw, 4.8rem);
-                    max-width: 12ch;
+                    font-size: clamp(2.2rem, 5vw, 4rem);
+                    max-width: 14ch;
                 }
 
                 .hero-description {
@@ -265,6 +265,7 @@ abstract class ViewModel extends CommandController
                 }
 
                 .hero-panel {
+                    align-self: start;
                     border-radius: 28px;
                     padding: 24px;
                     background: rgba(0, 0, 0, 0.18);
@@ -283,6 +284,72 @@ abstract class ViewModel extends CommandController
 
                 .hero-panel li + li {
                     margin-top: 10px;
+                }
+
+                .feature-section {
+                    margin-top: 24px;
+                    text-align: left;
+                }
+
+                .feature-header {
+                    padding: 0 8px;
+                }
+
+                .feature-header h2 {
+                    margin: 0;
+                    font-size: clamp(1.6rem, 3vw, 2.2rem);
+                }
+
+                .feature-description {
+                    color: var(--muted);
+                    max-width: 70ch;
+                    margin: 12px 0 0;
+                }
+
+                .feature-grid {
+                    margin-top: 20px;
+                    display: grid;
+                    grid-template-columns: repeat(auto-fill, minmax(min(300px, 100%), 1fr));
+                    gap: 16px;
+                }
+
+                .feature-card {
+                    display: flex;
+                    flex-direction: column;
+                    gap: 10px;
+                    padding: 22px;
+                    border-radius: 24px;
+                    background: var(--panel);
+                    border: 1px solid var(--panel-border);
+                    box-shadow: var(--shadow);
+                    backdrop-filter: blur(18px);
+                }
+
+                .feature-card h3 {
+                    margin: 0;
+                    font-size: 1.08rem;
+                }
+
+                .feature-card p {
+                    margin: 0;
+                    color: var(--muted);
+                    line-height: 1.5;
+                    flex: 1;
+                }
+
+                .feature-tags {
+                    display: flex;
+                    flex-wrap: wrap;
+                    gap: 8px;
+                }
+
+                .feature-tags span {
+                    border-radius: 999px;
+                    padding: 4px 10px;
+                    font-size: 0.78rem;
+                    color: #ffd2ab;
+                    background: rgba(244, 162, 97, 0.12);
+                    border: 1px solid rgba(244, 162, 97, 0.24);
                 }
 
                 .app-footer {

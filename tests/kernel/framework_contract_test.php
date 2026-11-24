@@ -64,13 +64,28 @@ assert_true(strpos($config, 'UserIdentityService') === false, 'Config has no Use
 assert_true(strpos($config, "getenv('APP_DEBUG')") !== false, 'Config honors APP_DEBUG');
 assert_true(strpos($config, 'parse_url') !== false, 'Config sanitizes BASE_PATH via parse_url');
 
-$database = (string) file_get_contents($root . '/lib/Database.php');
+$database = (string) file_get_contents($root . '/lib/Database.php') . (string) file_get_contents($root . '/src/database/DatabaseConfig.php');
 assert_true(strpos($database, 'HUB_OIDC_DB_DSN') === false, 'Database has no HUB_OIDC_DB_DSN');
-assert_true(strpos($database, 'OLIVIA_DB_DSN') !== false, 'Database reads OLIVIA_DB_DSN');
 assert_true(strpos($database, 'naufragio') === false, 'Database has no Hub default database name');
 
 $dockerfile = (string) file_get_contents($root . '/Dockerfile');
 assert_true(strpos($dockerfile, 'PHP_VERSION=8.5.12-fpm-alpine3.24') !== false, 'Dockerfile pins php:8.5.12-fpm-alpine3.24');
+assert_true(preg_match('/docker-php-ext-install[^\n]*\bpdo_mysql\b[^\n]*\bzip\b/', $dockerfile) === 1, 'Dockerfile installs pdo_mysql and zip');
+assert_true(strpos($dockerfile, 'apk del --no-network .olivia-build-deps') !== false, 'Dockerfile removes build toolchain in the same layer');
+foreach (['pdo_mysql', 'pdo_sqlite', 'zip', 'fileinfo', 'openssl', 'sodium'] as $requiredExtension) {
+    assert_true(strpos($dockerfile, '"' . $requiredExtension . '"') !== false, "Dockerfile asserts extension {$requiredExtension} at build time");
+}
+assert_true(strpos($dockerfile, 'php.ini-production') !== false, 'Dockerfile enables php.ini-production');
+assert_true(strpos($dockerfile, 'COPY docker/php/production.ini $PHP_INI_DIR/conf.d/zz-olivia-production.ini') !== false, 'Dockerfile installs docker/php/production.ini');
+
+$productionIni = is_file($root . '/docker/php/production.ini') ? (string) file_get_contents($root . '/docker/php/production.ini') : '';
+foreach (['expose_php = Off', 'display_errors = Off', 'display_startup_errors = Off', 'log_errors = On'] as $iniLine) {
+    assert_true(preg_match('/^' . preg_quote($iniLine, '/') . '$/m', $productionIni) === 1, "production.ini sets {$iniLine}");
+}
+
+$workflow = (string) file_get_contents($root . '/.github/workflows/quality.yml');
+assert_true(strpos($workflow, 'for ext in pdo_mysql pdo_sqlite zip fileinfo openssl sodium') !== false, 'CI asserts required extensions in the image');
+assert_true(stripos($workflow, 'X-Powered-By header present') !== false, 'CI asserts no X-Powered-By header');
 
 $route = (string) file_get_contents($root . '/lib/Route.php');
 assert_true(strpos($route, "/livez") !== false, 'Route registers /livez');
@@ -112,32 +127,63 @@ foreach (['OLIVIA_DB_DSN', 'DB_DRIVER', 'DB_HOST', 'DB_PORT', 'DB_DATABASE', 'DB
     unset($_ENV[$envName], $_SERVER[$envName]);
 }
 
-$empty = \OliviaLib\Database::getDB();
-assert_true($empty['driver'] === '' && $empty['host'] === '' && $empty['database'] === '', 'Database stub is empty without env');
-assert_true(array_key_exists('ssl', $empty) && $empty['ssl'] === false, 'Database stub ssl defaults false');
+function db_config_error(?string $name = null): string
+{
+    try {
+        \OliviaLib\Database::getDB($name);
+    } catch (\RuntimeException $exception) {
+        return get_class($exception) . ': ' . $exception->getMessage();
+    }
+    return 'no exception';
+}
+
+assert_true(
+    db_config_error() === 'RuntimeException: Database driver is not configured: set OLIVIA_DB_DSN or DB_DRIVER.',
+    'Database fails closed without env (no empty stub)'
+);
+$legacyConfig = (string) file_get_contents($root . '/src/database-config/Database.php');
+assert_true(strpos($legacyConfig, "'root'") === false && strpos($legacyConfig, 'obs_escolar') === false, 'OliviaDatabaseConfig has no hardcoded root/obs_escolar fallback');
 
 putenv('OLIVIA_DB_DSN=mysql:host=127.0.0.1;port=3306;dbname=olivia');
+assert_true(
+    db_config_error() === 'RuntimeException: Database user is not configured: set DB_USERNAME.',
+    'mysql without DB_USERNAME fails closed'
+);
 putenv('DB_USERNAME=olivia');
 putenv('DB_PASSWORD=secret');
 $mysql = \OliviaLib\Database::getDB();
-assert_true($mysql['driver'] === 'mysql', 'OLIVIA_DB_DSN selects mysql');
-assert_true($mysql['host'] === '127.0.0.1' && $mysql['port'] === '3306' && $mysql['database'] === 'olivia', 'OLIVIA_DB_DSN parses host/port/dbname');
-assert_true($mysql['user'] === 'olivia' && $mysql['password'] === 'secret', 'credentials come from env, not DSN');
+assert_true($mysql === [
+    'driver' => 'mysql',
+    'host' => '127.0.0.1',
+    'port' => '3306',
+    'database' => 'olivia',
+    'user' => 'olivia',
+    'password' => 'secret',
+    'ssl' => false,
+    'ssl_ca' => '',
+], 'OLIVIA_DB_DSN resolves the exact mysql config; credentials come from env');
+assert_true(\OliviaLib\Database::getDB('default') === $mysql, 'getDB("default") is the default connection');
+assert_true(\OliviaLib\Database::getDB('mysql') === $mysql, 'legacy $drive = driver name resolves to the default connection');
+assert_true(db_config_error('sqlite') === 'RuntimeException: Unknown database connection "sqlite".', 'driver name different from the default driver is rejected');
+assert_true(db_config_error('relatorios') === 'RuntimeException: Unknown database connection "relatorios".', 'undeclared connection name is rejected');
+assert_true(\OliviaDatabaseConfig\Database::getDB() === $mysql, 'OliviaDatabaseConfig delegates to the application connections');
 
-$credentialRejected = false;
-try {
-    putenv('OLIVIA_DB_DSN=mysql:host=127.0.0.1;user=root;password=secret;dbname=olivia');
-    \OliviaLib\Database::getDB();
-} catch (\RuntimeException $exception) {
-    $credentialRejected = strpos($exception->getMessage(), 'must not be embedded') !== false;
-}
-assert_true($credentialRejected, 'embedded DSN credentials are rejected');
+putenv('OLIVIA_DB_DSN=mysql:host=127.0.0.1;user=root;password=secret;dbname=olivia');
+assert_true(
+    db_config_error() === 'RuntimeException: Database credentials must not be embedded in OLIVIA_DB_DSN.',
+    'embedded DSN credentials are rejected'
+);
 
 putenv('OLIVIA_DB_DSN=sqlite:/tmp/olivia.sqlite');
 putenv('DB_DRIVER');
 $sqlite = \OliviaLib\Database::getDB();
 assert_true($sqlite['driver'] === 'sqlite' && $sqlite['database'] === '/tmp/olivia.sqlite', 'OLIVIA_DB_DSN selects sqlite');
 assert_true($sqlite['user'] === '' && $sqlite['password'] === '', 'sqlite clears credentials');
+assert_true(\OliviaLib\Database::getDB('sqlite') === $sqlite, 'legacy $drive = sqlite resolves to the default sqlite connection');
+
+foreach (['OLIVIA_DB_DSN', 'DB_USERNAME', 'DB_PASSWORD'] as $envName) {
+    putenv($envName);
+}
 
 if ($failures > 0) {
     fwrite(STDERR, "framework contract failed: {$failures} assertion(s)\n");
