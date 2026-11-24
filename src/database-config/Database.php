@@ -4,30 +4,19 @@ namespace OliviaDatabaseConfig;
 
 use OliviaDatabaseLibrary\ADatabase;
 
+/**
+ * Ponto de compatibilidade dos antigos pacotes Olivia: delega para as conexões
+ * declaradas pela aplicação em OliviaLib\Database. Não existe configuração
+ * embutida: sem a classe da aplicação, falha fechado.
+ */
 class Database extends ADatabase
 {
-    private static $databases = [
-        'mysql' => [
-            'host' => '127.0.0.1',
-            'port' => '',
-            'database' => 'obs_escolar',
-            'user' => 'root',
-            'password' => '',
-            'driver' => 'mysql',
-            'ssl' => false
-        ]
-    ];
-
     public static function getDB($name = null)
     {
-        if (class_exists(\OliviaLib\Database::class)) {
-            return \OliviaLib\Database::getDB($name);
+        if (!class_exists(\OliviaLib\Database::class)) {
+            throw new \RuntimeException('No database connections are declared: OliviaLib\\Database is missing.');
         }
 
-        if (!array_key_exists($name, self::$databases)) {
-            throw new \Exception("Banco de dados inválido");
-        }
-
-        return self::$databases[$name];
+        return \OliviaLib\Database::getDB($name);
     }
 }

@@ -1,6 +1,6 @@
 # Olivia Framework
 
-Olivia é um framework PHP para aplicações web com organização em MVC, roteamento com suporte a árvore Trie e middlewares, proteção CSRF baseada em sessão, bibliotecas auxiliares consolidadas *in-tree* sob um único pin de PHP e uma camada de views baseada em componentes reutilizáveis.
+Olivia é um framework PHP para aplicações web com organização em MVC, roteamento HTTP com middlewares, proteção CSRF baseada em sessão, bibliotecas auxiliares consolidadas *in-tree* sob um único pin de PHP e uma camada de views baseada em componentes reutilizáveis. O roteador percorre as rotas na ordem de registro e compara o método HTTP e o padrão de URL, convertido em expressão regular.
 
 - **Pacote Composer:** `elzobrito/olivia-framework`
 - **Versão atual:** `2.0.1` (`COMPOSER_ROOT_VERSION=2.0.1`)
@@ -19,9 +19,9 @@ Este repositório publica o kernel (`OliviaLib\\` em `lib/`), todas as bibliotec
   - Interrupção real do despacho quando um middleware retorna `false` ou lança `OliviaRouter\MiddlewareHaltException`.
   - `CommandController::route()` e `redirect()` não expõem o token `_token` na query string da URL.
 - **Banco de Dados compatível com PHP 8.5 e TLS/SSL flexível:**
-  - `OliviaLib\Database::getDB()` resolve configuração por variáveis de ambiente (`OLIVIA_DB_DSN` ou `DB_*`) para `mysql` e `sqlite`, bloqueando credenciais embutidas no DSN.
+  - `OliviaLib\Database` só declara as conexões; `OliviaDatabaseLibrary\DatabaseConfig` resolve cada uma pelas variáveis de ambiente (`OLIVIA_DB_DSN` ou `DB_*`) para `mysql` e `sqlite`, bloqueando credenciais embutidas no DSN e falhando fechado quando falta configuração (ver [Configuração de Banco de Dados](#configuração-de-banco-de-dados)).
   - `OliviaDatabaseLibrary\Connection` utiliza constantes modernas `Pdo\Mysql::ATTR_*` do PHP 8.5 (com fallback compatível) sem warnings de depreciação e inclui o detalhe da `PDOException` em falhas de conexão.
-  - Suporte TLS/SSL com bundle CA atualizado em `src/database/BaltimoreCyberTrustRoot.crt.pem` (incluindo raízes Baltimore, DigiCert Global Root G2/CA e Microsoft RSA Root CA 2017 para Azure MySQL). Conexões com `ssl=true` exigem verificação de certificado CA; conexões com `ssl=false` explícito funcionam tanto em loopback quanto em servidores MySQL remotos/containers sem TLS (`ISS-OLIVIA-DB-SSL-001`).
+  - Suporte TLS/SSL com bundle CA atualizado em `src/database/BaltimoreCyberTrustRoot.crt.pem` (incluindo raízes Baltimore, DigiCert Global Root G2/CA e Microsoft RSA Root CA 2017 para Azure MySQL). Conexões com `ssl=true` exigem verificação de certificado CA; conexões com `ssl=false` explícito funcionam tanto em loopback quanto em servidores MySQL remotos/containers sem TLS (`ISS-OLIVIA-DB-SSL-001`); pela configuração de ambiente, desligar TLS para host remoto exige `OLIVIA_DB_ALLOW_INSECURE=true` (`OLIVIA-SEC-316`).
   - `QueryBuilder` aceita `string` ou `array` em `fields()` e nas cláusulas (`where()`, `group()`, `order()`, `having()`, `limit()`).
   - Desde a `OLIVIA-SEC-301`, identificadores em `table()`/`fields()`/`group()`/`order()`/`limit()` são validados (ver [Segurança](#segurança)); use `Raw::sql()` para expressões confiáveis.
   - `OliviaDatabaseModel\Model` e `OliviaDatabaseConfig\Database` delegam a resolução de conexão para `OliviaLib\Database::getDB()` da aplicação e expõem `find_table()` além de `find()`, `findForId()`, `all()`, `count()`, `save()`, `update()`, `delete()` e `deleteFull()`.
@@ -39,7 +39,9 @@ Este repositório publica o kernel (`OliviaLib\\` em `lib/`), todas as bibliotec
 
 - PHP `>=8.2 <8.6` (resolução Composer)
 - Runtime de produção/qualidade: Linux Alpine 3.24 e PHP 8.5, imagem `php:8.5.12-fpm-alpine3.24`
-- Extensões PHP: `ext-pdo`, `ext-fileinfo`, `openssl` (para criptografia e TLS)
+- Extensões PHP: `pdo` com `pdo_mysql` e/ou `pdo_sqlite`, `fileinfo`, `openssl` (criptografia e TLS), `sodium` e `zip` (validação de uploads Office/ODF; sem ela esses formatos são recusados)
+- A imagem Docker já traz todas: `pdo_mysql` e `zip` são compiladas no build e o toolchain é removido na mesma camada; o build falha se faltar alguma extensão
+- `php.ini` de produção: a imagem usa o `php.ini-production` oficial mais [`docker/php/production.ini`](docker/php/production.ini) (`expose_php=Off`, sem `X-Powered-By`; `display_errors=Off` e `display_startup_errors=Off`; `log_errors=On` para o stderr do container). Fora do Docker, aplique as mesmas diretivas no seu `php.ini`
 - Composer 2
 - Ambiente web compatível com `index.php` na raiz do projeto e sessão PHP habilitada
 
@@ -87,20 +89,20 @@ Quando o aplicativo consumidor mapeia o mesmo prefixo PSR-4 (por exemplo, `Olivi
 - **Compatibilidade (`OLIVIA-CLEAN-307`):** `mask`, `format_string`, `formataData`, `validaCPF`, `tirarAcentos`, `letra_maiuscula`, `mes_do_ano_por_extenso`, `encryptIt` e `decryptIt` continuam no `CommandController` como atalhos `@deprecated` para as classes `Support` e serão removidos na 3.0. `mes_do_ano_por_extenso()` passou a ser 1-indexado (antes `1` retornava "Fevereiro"). Foram **removidos**: `msgbox`, `view`, `find_object`, `buscar_objeto_in_array`, `getArrays`/`setArrays`, `getParametros`/`setParametros`/`getAllParametros`, `requestArrayGet`, `requestArrayPost`, `requestFile`, `getDateTime`, `Model::__call` (métodos inexistentes agora lançam `Error`), `RouterConfig::fromRequest`/`fromRequestData`, `Connection::getInstance`, `AuthController` e o middleware `RequestGet`. `Router` aceita apenas `middleware()` como cláusula; outros nomes lançam `BadMethodCallException`.
 - `OliviaLib\Email` — envio SMTP via PHPMailer (dependência opcional, configurada pelas variáveis `OLIVIA_SMTP_*`; sem PHPMailer ou sem `OLIVIA_SMTP_HOST`/`OLIVIA_SMTP_USER`, `enviar()` devolve a mensagem de erro em vez de enviar). Anexos só são lidos de dentro de `OLIVIA_UPLOAD_DIR`.
 - `OliviaLib\Config` — inicialização de sessão segura (`httponly`, `secure`), controle de erros via `APP_DEBUG`, sanitização de `BASE_PATH` e geração de `UUID`, `secret_key` e `secret_iv` em sessão.
-- `OliviaLib\Database` — configuração genérica de conexão via `OLIVIA_DB_DSN` e variáveis `DB_*` (sem acoplamento ao `HUB_OIDC_DB_DSN`).
+- `OliviaLib\Database` — declaração das conexões da aplicação (`connections()`); a leitura de `OLIVIA_DB_DSN`/`DB_*` e as regras de segurança ficam em `OliviaDatabaseLibrary\DatabaseConfig`.
 - `OliviaLib\Route` — registro de rotas do skeleton (incluindo probe `/livez`).
 
 ### Bibliotecas in-tree (`src/`), pinadas em PHP `>=8.2 <8.6`
 
-- `OliviaRouter\\` (`src/router/`) — Router 2.4 com indexação em árvore `Trie`, despacho de controllers/middlewares, `RouterConfig`, `SessionContextStore` e `MiddlewareHaltException`.
-- `OliviaDatabaseLibrary\\` (`src/database/`) — `ADatabase`, `Connection` (com retry, opções PDO para PHP 8.5 e bundle CA TLS), `QueryBuilder` e `ConnectionInterface`.
+- `OliviaRouter\\` (`src/router/`) — Router 2.4 que percorre as rotas na ordem de registro e seleciona a primeira com método HTTP e padrão de URL compatíveis. O padrão é convertido em expressão regular e comparado com o caminho da URL. A classe `Trie` mantém o nome por compatibilidade e faz essa comparação. Inclui despacho de controllers e middlewares, `RouterConfig`, `SessionContextStore` e `MiddlewareHaltException`.
+- `OliviaDatabaseLibrary\\` (`src/database/`) — `ADatabase` (registro de conexões nomeadas), `DatabaseConfig` (configuração lida do ambiente, com as regras de segurança), `Connection` (com retry, opções PDO para PHP 8.5 e bundle CA TLS), `QueryBuilder` e `ConnectionInterface`.
 - `OliviaDatabaseModel\\` (`src/database-model/`) — `Model` base com operações CRUD (`find`, `find_table`, `findForId`, `all`, `count`, `save`, `update`, `delete`, `deleteFull`) e hidratação via `request()` / `request_cripto()`. **Mudança de comportamento:** `Model::delete()` sem argumento usa a chave do próprio model (`$this->id` ou a `$primaryKey` informada) e, sem identificador, lança `InvalidArgumentException` — antes apagava o registro `id = 1`. `Model::deleteFull()` sem identificador e sem valores também lança `InvalidArgumentException`. `save()` devolve o ID inserido, mas não preenche `$this->id`; atribua-o se for reutilizar o objeto.
-- `OliviaDatabaseConfig\\` (`src/database-config/`) — `Database` que delega automaticamente para `OliviaLib\Database::getDB()` quando disponível.
+- `OliviaDatabaseConfig\\` (`src/database-config/`) — `Database` que delega para `OliviaLib\Database::getDB()`; sem essa classe, lança `RuntimeException` (o antigo padrão embutido com `root`, senha vazia e banco `obs_escolar` foi removido).
 - `OliviaCache\\` (`src/cache/`) — `CacheInterface` e `SessionCache` (usado pelo `QueryBuilder` para cachear consultas `SELECT` em sessão e invalidar em escritas).
 - `OliviaPagination\\` (`src/pagination/`) — `Pagination` com geração de controles HTML (`page_links`), sanitização contra XSS e exportação estruturada (`to_array()`, `get_limit_keys()`).
 - `Oliviapdf\\` (`src/pdf/`) — `Pdf` estendendo `FPDF` com suporte a tabelas (`SetWidths`, `SetAligns`, `Row`), HTML básico (`WriteHTML` — somente HTML confiável: links `<a href>` são gravados no PDF sem validação; nunca repasse HTML vindo do usuário), formas geométricas (`Circle`, `Ellipse`), texto rotacionado/direcional e cabeçalho/rodapé customizáveis.
 - `OliviaUpload\\` (`src/upload/`) — `Upload` endurecido (`OLIVIA-SEC-304`): grava em `OLIVIA_UPLOAD_DIR` (padrão `storage/uploads`), valida allowlist de extensões, bloqueia extensões executáveis (inclusive dupla extensão), confere o MIME real com `finfo` e recusa conteúdo `<?php`; sempre renomeia para UUID v4 e aplica permissões 0750/0640 explicitamente, independentemente do umask (falha de `chmod` desfaz o upload e é reportada em `getError()`; pasta recém-criada cujo `chmod` falhou é removida para ser recriada na próxima tentativa). Pastas criadas pelo framework, inclusive a base e seus ancestrais ausentes, recebem 0750 uma a uma; pastas que já existiam (geridas pelo operador) não têm o modo alterado. Desde `OLIVIA-SEC-312`: cada pasta ancestral é conferida dentro da base **antes** de ser criada (links simbólicos para fora são recusados); docx/xlsx/pptx exigem `[Content_Types].xml` e a parte principal, e odt/ods/odp exigem o arquivo `mimetype` correto (lido com limite do tamanho esperado; entrada maior é recusada sem ser descomprimida) — esses formatos dependem da extensão PHP `zip` e são recusados sem ela; extensões sem MIME conhecido só são aceitas com MIME declarado: `new Upload('docs', 5, ['pdf', 'dwg' => 'image/vnd.dwg'], $_FILES['f'])`. Use `isValid()`, `getPath()`, `getArqNameCripto()` e `getError()`. Os parâmetros `$renomear` e `$permissao` são ignorados (compatibilidade).
-- `OliviaDownload\\` (`src/download/`) — `Download` com streaming em chunks de 8 KB, suporte a HTTP Range (`206 Partial Content` / download resumível) e modos `now()` (`attachment`) ou `inline()`.
+- `OliviaDownload\\` (`src/download/`) — `Download` com streaming em chunks de 8 KB, suporte a HTTP Range (`206 Partial Content` / download resumível) e modos `now()` (`attachment`) ou `inline()`. Desde `OLIVIA-SEC-321` só serve arquivos **dentro de um diretório base**: por padrão `OLIVIA_UPLOAD_DIR` (o mesmo do `Upload`), ou o informado no construtor. O caminho pode ser relativo à base ou absoluto dentro dela; é resolvido com `realpath`. Caminho fora da base, link simbólico que aponta para fora, diretório e byte NUL são recusados com 404 (`RuntimeException`, sem o caminho na mensagem). O nome enviado vai saneado no `Content-Disposition` (`filename` ASCII sem aspas, `;`, barras, CR/LF nem controles, mais `filename*` UTF-8 da RFC 5987). Range segue a RFC 9110 e só vale em `GET`: `bytes=S-E`, `bytes=S-` e o sufixo `bytes=-N` (últimos N bytes) respondem 206; range fora do arquivo responde 416 com `Content-Range: bytes */tamanho`; múltiplos ranges, range invertido (inclusive com números enormes), espaços internos ou sintaxe inválida recebem o arquivo inteiro com 200. A resposta traz `ETag` forte (SHA-256 dos bytes) e `Last-Modified`; `If-Range` só mantém o Range quando é exatamente o `ETag` atual (data, ETag fraco ou diferente: 200 com o arquivo inteiro). `HEAD` responde os headers sem corpo e sem Range. Calcular o `ETag` exige uma leitura do arquivo antes de enviar os headers. Publique atualizações por substituição atômica do arquivo para que transferências em curso mantenham a versão aberta. Toda resposta, inclusive os erros 404/403 e mesmo sem o bootstrap do `Config`, leva `X-Content-Type-Options: nosniff`. Quem chamava `now()` com caminho absoluto fora de `OLIVIA_UPLOAD_DIR` precisa passar a base: `(new Download('/srv/relatorios'))->now('2026/marco.pdf', 'Relatório de março');`.
 
 ### Permanecem no aplicativo consumidor (ex.: Hub ATRIO)
 
@@ -169,7 +171,7 @@ O autoload em `composer.json` registra os 12 namespaces PSR-4 abaixo:
 | `OliviaApp\\` | `app/` | Aplicação (skeleton) |
 | `OliviaLib\\` | `lib/` | Kernel do framework |
 | `OliviaPublico\\` | `publico/` | Views e componentes visuais (skeleton) |
-| `OliviaRouter\\` | `src/router/` | Roteador HTTP, Trie, Config e Middlewares |
+| `OliviaRouter\\` | `src/router/` | Roteamento por método HTTP e padrão de URL, verificado em ordem de registro com expressões regulares. Inclui configuração e middlewares. |
 | `OliviaPagination\\` | `src/pagination/` | Paginação de registros |
 | `Oliviapdf\\` | `src/pdf/` | Geração de relatórios PDF (FPDF) |
 | `OliviaUpload\\` | `src/upload/` | Upload e validação de arquivos |
@@ -183,7 +185,34 @@ O autoload em `composer.json` registra os 12 namespaces PSR-4 abaixo:
 
 ## Configuração de Banco de Dados
 
-`OliviaLib\Database::getDB()` resolve as credenciais e opções de conexão a partir das variáveis de ambiente:
+A aplicação só declara as conexões em `lib/Database.php`; host, banco e credenciais vêm do ambiente, e as regras de segurança ficam no framework (`OliviaDatabaseLibrary\DatabaseConfig`):
+
+```php
+namespace OliviaLib;
+
+use OliviaDatabaseLibrary\ADatabase;
+use OliviaDatabaseLibrary\DatabaseConfig;
+
+class Database extends ADatabase
+{
+    protected static function connections(): array
+    {
+        return [
+            'default'    => DatabaseConfig::fromEnvironment(),        // OLIVIA_DB_DSN, DB_*
+            'relatorios' => DatabaseConfig::fromEnvironment('REL_'),  // REL_OLIVIA_DB_DSN, REL_DB_*
+        ];
+    }
+}
+```
+
+- `getDB()` (ou `getDB('default')`) devolve a conexão `default`; `getDB('relatorios')` devolve a conexão nomeada. O parâmetro continua se chamando `$name`, então `getDB(name: 'relatorios')` também funciona. Num model, `protected $drive = 'relatorios';` escolhe a conexão.
+- **Compatibilidade de `$drive`:** models antigos usam o nome do driver (`'mysql'`, `'sqlite'`). Um nome não declarado igual ao driver da conexão `default` resolve para ela; qualquer outro nome desconhecido lança `RuntimeException`.
+- **Prefixo:** com `fromEnvironment('REL_')`, **todos** os nomes de banco da tabela abaixo recebem o prefixo (`REL_OLIVIA_DB_DSN`, `REL_DB_HOST`, `REL_DB_USERNAME`, `REL_OLIVIA_DB_SSL`...). O prefixo usa letras maiúsculas, dígitos e `_`, terminando em `_`.
+- **Leitura preguiçosa:** o ambiente de uma conexão só é lido quando ela é pedida; uma conexão secundária sem variáveis não atrapalha a `default`.
+- **Falha fechada:** sem driver (`OLIVIA_DB_DSN` ou `DB_DRIVER`), sem banco ou, no MySQL, sem host ou sem usuário, `getDB()` lança `RuntimeException` com o nome da variável que falta. `OLIVIA_DB_SSL`/`DB_SSL` com valor que não é booleano (ex.: `talvez`) também lança, em vez de desligar o TLS. Não existe mais configuração padrão: antes a falta de ambiente devolvia uma configuração vazia, e `OliviaDatabaseConfig\Database` caía em `root` com senha vazia. Declarar uma conexão com array fixo em vez de `DatabaseConfig` é recusado: credenciais não ficam no código.
+- **Migração do `lib/Database.php` antigo** (passo a passo no [guia de migração](#guia-de-migração-da-configuração-de-banco)): troque a classe que sobrescrevia `getDB()` pela declaração acima e garanta `DB_USERNAME` e `DB_HOST` (ou `host` no DSN) no ambiente do MySQL. Uma subclasse antiga que ainda sobrescreve `getDB()` continua funcionando, mas sem as regras do framework.
+
+Variáveis de ambiente:
 
 | Variável | Descrição |
 | --- | --- |
@@ -191,7 +220,9 @@ O autoload em `composer.json` registra os 12 namespaces PSR-4 abaixo:
 | `DB_DRIVER` | Driver explícito (`mysql` ou `sqlite`), caso `OLIVIA_DB_DSN` não seja informado. |
 | `DB_HOST` / `DB_PORT` / `DB_DATABASE` | Host, porta e nome do banco (sobrescrevem ou complementam o DSN). |
 | `DB_USERNAME` (ou `DB_USER`) / `DB_PASSWORD` | Credenciais de autenticação do banco. |
-| `OLIVIA_DB_SSL` (ou `DB_SSL`) | Ativa (`true`) ou desativa (`false`) TLS no MySQL. Padrão: `false` para loopback (`127.0.0.1`, `localhost`, `::1`) e SQLite; `true` para hosts MySQL remotos. |
+| `DB_PASSWORD_FILE` | Caminho de um arquivo com a senha (secret do Docker/Kubernetes, ex.: `/run/secrets/db_password`). Uma quebra de linha final é removida; limite de 4096 bytes. Definir junto com `DB_PASSWORD` (mesmo vazio), ou apontar arquivo inexistente/ilegível/grande demais, lança `RuntimeException` sem expor o caminho. |
+| `OLIVIA_DB_SSL` (ou `DB_SSL`) | Ativa (`true`) ou desativa (`false`) TLS no MySQL. Padrão: `false` para loopback (`127.0.0.1`, `localhost`, `::1`) e SQLite; `true` para hosts MySQL remotos. Para host remoto, `false` só vale com `OLIVIA_DB_ALLOW_INSECURE=true`. |
+| `OLIVIA_DB_ALLOW_INSECURE` | `true` permite TLS desligado para host fora do loopback (um aviso vai ao log uma vez por processo). Sem ela, `getDB()` falha fechado. Nomes de serviço do Docker (`db`, `mysql`) contam como remotos. |
 | `OLIVIA_DB_SSL_CA` (ou `DB_SSL_CA`) | Caminho para arquivo CA PEM. Quando vazio e `ssl=true`, usa o bundle padrão `src/database/BaltimoreCyberTrustRoot.crt.pem`. |
 | `OLIVIA_FORCE_SECURE` | Força (`true`) ou desliga (`false`) o atributo `Secure` do cookie de sessão. Sem valor, é ativado automaticamente em requisições HTTPS. Valor inválido (ex.: `talvez`) é ignorado, registrado em log, e a detecção automática continua. |
 | `OLIVIA_TRUSTED_PROXIES` | IPs ou CIDRs (IPv4/IPv6), separados por vírgula, dos proxies reversos confiáveis. `X-Forwarded-Proto` só é considerado quando `REMOTE_ADDR` está nessa lista; sem ela, o header é ignorado. O proxy listado **deve sobrescrever** (não acrescentar a) qualquer `X-Forwarded-Proto` recebido do cliente, porque o Olivia usa o primeiro valor do header. |
@@ -205,6 +236,82 @@ O autoload em `composer.json` registra os 12 namespaces PSR-4 abaixo:
 | `OLIVIA_DB_CONNECT_RETRIES` | Novas tentativas de conexão após falha (intervalo de 200 ms). Padrão: `1`. |
 | `OLIVIA_QUERY_CACHE` | `session` liga o cache de consultas na sessão PHP (opção `query_cache` na configuração tem precedência). Padrão: **desligado** — a sessão não enxerga escritas feitas por outros processos ou usuários. |
 | `OLIVIA_DB_PERSISTENT` | Usa `PDO::ATTR_PERSISTENT` entre requisições do PHP-FPM. Padrão: `false` — uma transação ou lock esquecido passaria para a próxima requisição. |
+
+### Guia de migração da configuração de banco
+
+Exemplos prontos: [`.env.example`](.env.example) (todas as variáveis de banco, sem segredo real) e [`docker-compose.example.yml`](docker-compose.example.yml) (app PHP-FPM, nginx e MySQL, com a senha vinda de um secret em arquivo). Copie `.env.example` para `.env`; `.env`, `.env.*` e `secrets/` estão no `.gitignore`.
+
+**1. Troque o `lib/Database.php` antigo pela declaração.** Antes, a classe montava o array de conexão (às vezes com usuário e senha no código):
+
+```php
+// ANTES: credenciais e regras na aplicação
+class Database extends ADatabase
+{
+    public static function getDB($name = null)
+    {
+        return ['driver' => 'mysql', 'host' => '10.0.0.5', 'database' => 'app',
+                'user' => 'root', 'password' => 'segredo', 'ssl' => false];
+    }
+}
+```
+
+Depois, só a declaração (exemplo completo no início desta seção); valores vêm do ambiente:
+
+```php
+// DEPOIS: a aplicação só declara; o framework valida e falha fechado
+protected static function connections(): array
+{
+    return ['default' => DatabaseConfig::fromEnvironment()];
+}
+```
+
+**2. Leve os valores para o ambiente** (`.env` fora do git, variáveis do orquestrador ou secrets):
+
+| Antes (no código) | Depois (ambiente) |
+| --- | --- |
+| `'host' => '10.0.0.5'`, `'database' => 'app'` | `OLIVIA_DB_DSN=mysql:host=10.0.0.5;port=3306;dbname=app` (ou `DB_HOST`/`DB_PORT`/`DB_DATABASE`) |
+| `'user' => '...'` | `DB_USERNAME=...` (obrigatório no MySQL) |
+| `'password' => '...'` | `DB_PASSWORD_FILE=/run/secrets/db_password` (preferido) ou `DB_PASSWORD` — nunca os dois |
+| `'ssl' => false` com host remoto | `OLIVIA_DB_SSL=false` **e** `OLIVIA_DB_ALLOW_INSECURE=true`; melhor: manter TLS e apontar `OLIVIA_DB_SSL_CA` |
+| segunda conexão com array próprio | `'relatorios' => DatabaseConfig::fromEnvironment('REL_')` e variáveis `REL_*` |
+
+**3. O que deixa de funcionar** (todos falham com `RuntimeException` e mensagem exata, em vez de cair num padrão inseguro): host ausente (não há mais `127.0.0.1` implícito), usuário ausente, credencial dentro do DSN, `DB_PASSWORD` junto com `DB_PASSWORD_FILE`, arquivo de senha ilegível, TLS desligado para host remoto sem `OLIVIA_DB_ALLOW_INSECURE=true` e nome de conexão não declarado. Nomes de serviço do Docker (`db`, `mysql`) contam como host remoto.
+
+**4. Confira a configuração sem imprimir a senha:**
+
+```bash
+php -r 'require "vendor/autoload.php"; $c = OliviaLib\Database::getDB(); unset($c["password"]); print_r($c);'
+```
+
+**5. Use usuários de menor privilégio.** A aplicação web não precisa de DDL nem de privilégios administrativos; migrations rodam com outro usuário, numa conexão própria usada só por scripts de linha de comando:
+
+```sql
+-- Usuário da aplicação (DB_USERNAME): só dados
+CREATE USER 'olivia_app'@'10.0.0.%' IDENTIFIED BY '<senha do secret>' REQUIRE SSL;
+GRANT SELECT, INSERT, UPDATE, DELETE ON olivia.* TO 'olivia_app'@'10.0.0.%';
+
+-- Usuário de migrations (MIG_DB_USERNAME): estrutura, nunca usado pela app web
+CREATE USER 'olivia_migrator'@'10.0.0.%' IDENTIFIED BY '<outra senha>' REQUIRE SSL;
+GRANT SELECT, INSERT, UPDATE, DELETE, CREATE, ALTER, DROP, INDEX, REFERENCES ON olivia.* TO 'olivia_migrator'@'10.0.0.%';
+```
+
+```php
+// lib/Database.php
+return [
+    'default'   => DatabaseConfig::fromEnvironment(),       // olivia_app
+    'migracoes' => DatabaseConfig::fromEnvironment('MIG_'), // olivia_migrator, só em scripts CLI
+];
+```
+
+Evite `ALL PRIVILEGES`, `GRANT OPTION`, `FILE`, `SUPER` e o usuário `root` na aplicação; restrinja o host do usuário à rede da aplicação e, em host remoto, use `REQUIRE SSL`. O exemplo do Docker Compose cria o usuário com `MYSQL_USER`, que recebe `ALL` no banco: aplique os `GRANT`s acima antes de produção.
+
+**6. Outras mudanças das fases 1–3 que podem exigir ajuste:**
+
+- `getDB()` continua devolvendo o array com a senha (compatibilidade); não o registre nem o despeje. A `Connection` mascara a senha (`OLIVIA-SEC-316`).
+- `OliviaDownload\Download` só serve arquivos dentro de `OLIVIA_UPLOAD_DIR` ou da base passada no construtor (`OLIVIA-SEC-321`).
+- Falha de CSRF lança `OliviaRouter\CsrfException` (subclasse de `RuntimeException`) e vira 403; quem compara a classe exata precisa atualizar (`OLIVIA-SEC-322`).
+- Método não aceito pela rota responde 405 com `Allow`, e `HEAD` usa a rota `GET` (`OLIVIA-SEC-322`).
+- O `Config` não altera mais o `memory_limit`; ajuste o `php.ini` se a aplicação dependia do limite ilimitado (`OLIVIA-SEC-322`).
 
 ### Conexões e transações
 
@@ -256,6 +363,12 @@ A renderização principal utiliza as classes base:
 
 Essas classes oferecem suporte a componentes reutilizáveis por meio do método `renderComponent()`.
 
+O `<style>` de cada classe base carrega o nonce da CSP da requisição. Em views próprias, todo `<style>` ou `<script>` inline precisa do mesmo atributo, senão o navegador o bloqueia; atributos `style="..."` e handlers `onclick` não são aceitos pela CSP padrão:
+
+```php
+<style nonce="<?= htmlspecialchars(\OliviaLib\Config::cspNonce(), ENT_QUOTES, 'UTF-8') ?>">...</style>
+```
+
 Componentes disponíveis no skeleton:
 
 - `publico/Components/Component.php`
@@ -276,9 +389,9 @@ php tests/kernel/behavior_test.php
 docker build --build-arg PHP_VERSION=8.5.12-fpm-alpine3.24 --tag olivia-framework:smoke .
 ```
 
-O workflow de Quality Gate (`.github/workflows/quality.yml`) valida o `composer.json`, executa lint (`php -l`) em `lib/`, `src/` e `app/`, roda as suítes de contrato (`framework_contract_test.php` e `security_contract_test.php`) e a suíte de comportamento (`behavior_test.php`) em PHP 8.5 e constrói a imagem Docker exigindo `PHP 8.5.12`, `ID=alpine` e `VERSION_ID=3.24`.
+O workflow de Quality Gate (`.github/workflows/quality.yml`) valida o `composer.json`, executa lint (`php -l`) em `lib/`, `src/` e `app/`, roda as suítes de contrato (`framework_contract_test.php` e `security_contract_test.php`) e a suíte de comportamento (`behavior_test.php`) em PHP 8.5 e constrói a imagem Docker exigindo `PHP 8.5.12`, `ID=alpine` e `VERSION_ID=3.24`, as extensões `pdo_mysql`, `pdo_sqlite`, `zip`, `fileinfo`, `openssl` e `sodium`, o `php.ini` de produção (`expose_php`, `display_errors` e `display_startup_errors` desligados, `log_errors` ligado), ausência de compilador na imagem final e nenhuma resposta com `X-Powered-By`.
 
-A `behavior_test.php` exercita o kernel de ponta a ponta: CRUD em SQLite real, reconexão e transações com dublês de PDO, roteador e CSRF, criptografia, uploads e, por HTTP real, um servidor embutido do PHP (`php -S` em `127.0.0.1`) para redirects, status 404, cookies de sessão, `RequestPost` com formulário e upload multipart. Requisitos: `pdo_sqlite`, `proc_open` habilitado e porta local livre; os checks de documentos Office/ODF que dependem de `ext-zip` mudam para o caminho de falha fechada quando a extensão não existe. A suíte parte de um ambiente limpo (variáveis `OLIVIA_*`/`DB_*` herdadas são removidas), restaura ambiente, sessão e superglobais entre grupos e deve rodar sem depreciações com `-d error_reporting=-1`.
+A `behavior_test.php` exercita o kernel de ponta a ponta: CRUD em SQLite real, reconexão e transações com dublês de PDO, roteador e CSRF, criptografia, uploads e, por HTTP real, um servidor embutido do PHP (`php -S` em `127.0.0.1`) para redirects, status 404, respostas 403 (CSRF), 405 (com `Allow`) e 500 (página genérica, log e erro fatal), cookies de sessão, headers de segurança e CSP por nonce, `RequestPost` com formulário e upload multipart. Requisitos: `pdo_sqlite`, `proc_open` habilitado e porta local livre; os checks de documentos Office/ODF que dependem de `ext-zip` mudam para o caminho de falha fechada quando a extensão não existe. A suíte parte de um ambiente limpo (variáveis `OLIVIA_*`/`DB_*` herdadas são removidas), restaura ambiente, sessão e superglobais entre grupos e deve rodar sem depreciações com `-d error_reporting=-1`.
 
 ---
 
@@ -287,10 +400,18 @@ A `behavior_test.php` exercita o kernel de ponta a ponta: CRUD em SQLite real, r
 - **CSRF e Autoridade de Sessão:** inicializado em `lib/Config.php` com token de 256 bits (`random_bytes`, 64 hex) armazenado em `$_SESSION['UUID']`; tokens no formato antigo são renovados automaticamente. O roteador valida o CSRF **antes** de qualquer middleware (uma requisição forjada não dispara efeitos de middlewares), compara o token com `hash_equals`, aceita o campo `_token` do formulário ou, quando ele está ausente ou vazio, o header `X-CSRF-Token` (AJAX/JSON). Um `_token` presente com tipo inválido (`null`, array, número; ex.: `_token[]=x`) é rejeitado sem consultar o header; o header só é usado quando a chave está ausente ou é uma string vazia. Nunca valida quando o token esperado está vazio. O middleware `RequestPost` segue as mesmas regras. Após login, logout ou troca de privilégio chame `OliviaLib\Config::regenerateSession()`, que renova o ID de sessão e o token. O roteador lê CSRF, namespace e pastas **somente da sessão** (ou de um `RouterConfig` explícito); cookies `OLIVIA_*` não desativam CSRF nem alteram o namespace de controllers/middlewares.
 - **Proteção de URLs:** `csrf_field()` injeta o campo oculto `_token` para formulários `POST`; `route()` e `redirect()` não expõem o token na URL.
 - **Halt de Middleware:** middlewares que retornam `false` ou lançam `OliviaRouter\MiddlewareHaltException` interrompem imediatamente o despacho antes da execução do controller.
-- **MySQL TLS/SSL:** conexões MySQL remotas assumem `ssl=true` por padrão (`OLIVIA_DB_SSL` / `DB_SSL`) com verificação estrita de certificado CA; `ssl=false` pode ser configurado explicitamente quando o servidor de banco não oferece TLS.
+- **MySQL TLS/SSL:** conexões MySQL remotas assumem `ssl=true` por padrão (`OLIVIA_DB_SSL` / `DB_SSL`) com verificação estrita de certificado CA. Desligar TLS para host remoto exige também `OLIVIA_DB_ALLOW_INSECURE=true` (`OLIVIA-SEC-316`); sem a flag, `getDB()` lança `RuntimeException`. **Migração:** quem usava `DB_SSL=false` com host remoto (inclusive nome de serviço do Docker) precisa adicionar a flag ou ligar o TLS.
+- **Senha do banco (`OLIVIA-SEC-316`):** além de `DB_PASSWORD`, aceita `DB_PASSWORD_FILE` (secret em arquivo). A `Connection` guarda a senha fora das opções: `var_dump`/`print_r` mostram `********` (`__debugInfo`), `var_export` e o cast para array não a alcançam, e a conexão não pode ser serializada. `Connection::__construct` e `ConnectionManager::get()` marcam as opções com `#[\SensitiveParameter]`, então a senha não aparece nos argumentos de stack traces; o PDO já protege a sua. **Limite conhecido:** `getDB()` continua devolvendo o array de configuração com a senha em texto (compatibilidade da API); não registre nem despeje esse array. Ele vai direto para o `QueryBuilder`, cujo frame ainda mostra o array em `getTrace()` quando `zend.exception_ignore_args` está desligado (o `php.ini` de produção da imagem o liga).
 - **SQL estrutural no `QueryBuilder`:** `table()`, `fields()`, `group()`, `order()` e `limit()` só aceitam identificadores (`coluna`, `tabela.coluna`, `` `coluna` ``, alias com/sem `AS`, `*`, `tabela.*`, agregados `COUNT/SUM/AVG/MIN/MAX` com `DISTINCT` opcional), direção `ASC`/`DESC` e limites inteiros (`N`, `offset, N`, `N OFFSET M`, `[offset, N]`, inclusive `0`); qualquer outra entrada lança `InvalidArgumentException`. Em cláusulas passadas como array, os metadados `instruction` e `separator` só aceitam os valores padrão (`ORDER BY`/`GROUP BY`/`LIMIT`/`WHERE`/`HAVING`; `,` ou `AND`/`OR`) — antes permitiam injetar SQL estrutural (`OLIVIA-DB-310`). `where()`, `join()`, `having()` e `pre()` continuam sendo SQL do desenvolvedor e **devem** usar placeholders `?` para valores do usuário. Expressões confiáveis fora do padrão usam `OliviaDatabaseLibrary\Raw::sql('...')` — nunca com entrada do usuário.
 - **Atribuição em massa:** `Model::request()` e `request_cripto()` preenchem apenas `$fillable` menos `$guarded` (padrão: `id`, `password`, `senha`, `remember_token`, `tipo`, `subTipo`, `status`, `role`, `roles`, `is_admin`, `admin`, `is_superuser`, `superuser`, `permissoes`, `permissions`, `nivel`, `perfil`, `privilegios` e timestamps). Para aceitar um campo protegido, passe a lista explícita — `request(['nome', 'password'])` — ou sobrescreva `$guarded` no model.
-- **Mensagens ao usuário:** `msgbox()` (JavaScript inline, bloqueado pela CSP do `.htaccess`) foi removido. Use `$this->flash('Salvo!', 'sucesso'); $this->redirect('lista');` e, na view de destino, `pullFlash()` — escapando a mensagem com `htmlspecialchars` ao renderizar.
+- **Headers de segurança (`OLIVIA-SEC-320`):** `Config` envia em toda resposta, pelo próprio PHP (vale para Apache, nginx/PHP-FPM e `php -S`): `Content-Security-Policy`, `X-Content-Type-Options: nosniff`, `X-Frame-Options: DENY`, `Referrer-Policy: same-origin` e `Permissions-Policy` (câmera, microfone, geolocalização, pagamento e USB desligados); `X-Powered-By` é removido. `Strict-Transport-Security: max-age=31536000` só sai quando `Config::isSecureRequest()` é verdadeiro. A CSP padrão (`Config::contentSecurityPolicy()`) aceita só a própria origem (`default-src 'self'`, imagens e fontes também `data:`), libera `<style>`/`<script>` inline apenas com o nonce da requisição (`Config::cspNonce()`, 128 bits, novo a cada requisição) e define `object-src 'none'`, `base-uri 'self'`, `form-action 'self'` e `frame-ancestors 'none'`; não há fontes `http:`/`https:` amplas nem `'unsafe-inline'`. Para outra política (CDN, por exemplo), chame `header('Content-Security-Policy: ...')` depois do `Config`: o valor substitui o padrão. O `.htaccess` não repete esses headers nas páginas: dentro de `<IfModule mod_headers.c>` (fora do bloco de `mod_rewrite`) usa `Header setifempty`, que só completa arquivos estáticos servidos pelo Apache, e remove `X-Powered-By`. `X-XSS-Protection` (obsoleto) e HSTS em HTTP puro foram retirados.
+- **Mensagens ao usuário:** `msgbox()` (JavaScript inline, bloqueado pela CSP) foi removido. Use `$this->flash('Salvo!', 'sucesso'); $this->redirect('lista');` e, na view de destino, `pullFlash()` — escapando a mensagem com `htmlspecialchars` ao renderizar.
+- **Erros HTTP (`OLIVIA-SEC-322`):** o `index.php` chama `OliviaLib\ErrorHandler::register()` antes do `Config`. O handler abre um buffer de saída (a saída parcial da página é descartada quando algo falha) e responde:
+  - **403** para `OliviaRouter\CsrfException`, a exceção dedicada lançada pelo roteador quando o token CSRF falta ou não confere (estende `RuntimeException`, então quem a capturava continua funcionando);
+  - **405** com header `Allow` para `OliviaRouter\MethodNotAllowedException`, lançada quando o caminho existe só com outros métodos (ex.: `POST /` com `Allow: GET, HEAD`); caminho inexistente continua no fluxo de 404. `HEAD` usa a rota `GET` do mesmo caminho quando não tem rota própria. A resposta contém apenas status e headers, inclusive em caso de erro. Por isso, todo caminho com `GET` anuncia `HEAD` no `Allow`;
+  - **500** para qualquer outra exceção e para erros fatais (pelo `register_shutdown_function`), sempre registrando classe, mensagem, arquivo:linha, rota e trace com `error_log`.
+
+  A página (`publico/E500.php`, com o componente `ErrorState` recebendo o código) é genérica e leva os headers de segurança e o nonce da CSP; classe, mensagem e trace só aparecem, escapados, com `APP_DEBUG=true`. Clientes que pedem JSON (`Accept` sem `text/html`, ou `X-Requested-With: XMLHttpRequest`) recebem `{"status":403,"error":"Acesso negado","message":"..."}`. O `Config` não altera mais o `memory_limit` (antes `-1`, ilimitado): vale o limite do `php.ini` ou do ambiente.
 - **Redirect de 404:** `lib/Route.php` redireciona para um caminho relativo (`BASE_PATH/error404`) e encerra a requisição; o header `Host`, controlado pelo cliente, não é usado. A página `/error404` responde com status HTTP 404.
 - **Sessão e Erros:** o cookie de sessão usa `HttpOnly`, `SameSite=Lax`, `session.use_strict_mode` e `session.use_only_cookies`; `Secure` é ativado em HTTPS (detectado por `HTTPS`, porta 443 ou `X-Forwarded-Proto` vindo de um proxy listado em `OLIVIA_TRUSTED_PROXIES`) ou forçado com `OLIVIA_FORCE_SECURE=true`. `display_errors` e `display_startup_errors` permanecem desligados por padrão e só são ativados quando `APP_DEBUG=true`.
 

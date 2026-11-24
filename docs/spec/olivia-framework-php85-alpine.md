@@ -71,13 +71,16 @@ Quando o ATRIO declara o mesmo prefixo `OliviaLib\\` → `atrio/lib/`, o Compose
 Ler DSN de env, nesta ordem:
 
 1. `OLIVIA_DB_DSN` (formato `mysql:...` ou `sqlite:...`)
-2. `DB_DRIVER` + `DB_HOST` / `DB_PORT` / `DB_DATABASE` / `DB_USERNAME` / `DB_PASSWORD`
-3. Stub vazio (comportamento atual do skeleton)
+2. `DB_DRIVER` + `DB_HOST` / `DB_PORT` / `DB_DATABASE` / `DB_USERNAME` / `DB_PASSWORD` (ou `DB_PASSWORD_FILE`)
+3. ~~Stub vazio~~ — removido em `OLIVIA-DB-315`: sem configuração, `getDB()` lança `RuntimeException` (falha fechada).
 
 Regras:
 
 - Credenciais não podem ir embutidas no DSN (`user`/`username`/`password` no DSN → `RuntimeException`).
 - Drivers suportados: `mysql`, `sqlite`.
+- Desde `OLIVIA-DB-315`, as regras ficam em `OliviaDatabaseLibrary\DatabaseConfig`; `lib/Database.php` só declara as conexões (`DatabaseConfig::fromEnvironment($prefixo)`), com conexões nomeadas por prefixo.
+- Desde `OLIVIA-SEC-316`: `DB_PASSWORD_FILE` (secret em arquivo, exclusivo com `DB_PASSWORD`); TLS desligado para host fora do loopback exige `OLIVIA_DB_ALLOW_INSECURE=true`; a `Connection` mascara a senha em dumps e traces.
+- Guia de migração, `.env.example` e `docker-compose.example.yml`: `OLIVIA-QA-317` (ver README).
 - **Proibido:** `HUB_OIDC_DB_DSN`, política “produção só MySQL” do Hub, default `naufragio`.
 
 ### Hub (permanece no ATRIO)

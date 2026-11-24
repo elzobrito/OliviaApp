@@ -68,3 +68,41 @@ jobs:
           os_release="$(docker exec "${container_id}" cat /etc/os-release)"
           grep -E '^ID=alpine$' <<<"${os_release}"
           grep -E '^VERSION_ID="?3\.24' <<<"${os_release}"
+
+      - name: Assert required extensions and production php.ini
+        shell: bash
+        run: |
+          set -euo pipefail
+          missing=0
+          for ext in pdo_mysql pdo_sqlite zip fileinfo openssl sodium; do
+            if ! docker run --rm olivia-framework:quality php -r "exit(extension_loaded('${ext}') ? 0 : 1);"; then
+              echo "::error::missing PHP extension: ${ext}"
+              missing=1
+            fi
+          done
+          test "${missing}" -eq 0
+          for setting in expose_php display_errors display_startup_errors; do
+            test "$(docker run --rm olivia-framework:quality php -r "echo (int) ini_get('${setting}');")" = '0'
+          done
+          test "$(docker run --rm olivia-framework:quality php -r "echo (int) ini_get('log_errors');")" = '1'
+          test "$(docker run --rm olivia-framework:quality php-fpm -i | grep -E '^expose_php ' | awk '{print $3}')" = 'Off'
+          if docker run --rm olivia-framework:quality sh -c 'command -v gcc || command -v cc || command -v make'; then
+            echo "::error::build toolchain left in final image"
+            exit 1
+          fi
+
+      - name: Assert no X-Powered-By header
+        shell: bash
+        run: |
+          set -euo pipefail
+          container_id="$(docker run --detach --publish 127.0.0.1:18080:8080 olivia-framework:quality php -S 0.0.0.0:8080 index.php)"
+          trap 'docker rm -f "${container_id}" >/dev/null 2>&1 || true' EXIT
+          for _ in $(seq 1 20); do
+            curl --silent --output /dev/null http://127.0.0.1:18080/ && break
+            sleep 0.5
+          done
+          headers="$(curl --silent --head http://127.0.0.1:18080/)"
+          if grep -qi '^x-powered-by:' <<<"${headers}"; then
+            echo "::error::X-Powered-By header present"
+            exit 1
+          fi

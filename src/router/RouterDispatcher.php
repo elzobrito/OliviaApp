@@ -41,20 +41,93 @@ class RouterDispatcher
                 continue;
             }
 
+            $this->run($route, $request, false);
+            return;
+        }
+
+        // HEAD sem rota própria usa a rota GET do mesmo caminho, sem corpo (RFC 9110 9.3.2).
+        // Sem isso, HEAD caía no 404 e HEAD /error404 redirecionava para si mesma.
+        if ($request->getMethod() === 'HEAD') {
+            $asGet = new Request(
+                'GET',
+                $request->getUri(),
+                $request->getPostData(),
+                $request->getQueryData(),
+                $request->getCookieData(),
+                $request->getServerData(),
+                $request->getContentType()
+            );
+            foreach ($this->routes as $route) {
+                $route = $this->normalizeRoute($route);
+                if ($route->getHttpMethod() === 'GET' && $route->matches($asGet, $this->trie)) {
+                    $this->run($route, $request, true);
+                    return;
+                }
+            }
+        }
+
+        // Caminho existe com outro método: 405 com Allow, em vez de cair no 404.
+        $allowed = $this->allowedMethodsFor($request);
+        if ($allowed !== []) {
+            $this->publishNotFoundState(false);
+            throw new MethodNotAllowedException($request->getMethod(), $allowed);
+        }
+    }
+
+    /**
+     * CSRF, middlewares e handler de uma rota que casou. Com $discardBody (HEAD), a saída é descartada
+     * e só status e headers chegam ao cliente.
+     */
+    private function run(Route $route, Request $request, bool $discardBody): void
+    {
+        $level = ob_get_level();
+        if ($discardBody) {
+            ob_start(static fn (): string => '');
+        }
+
+        try {
             // CSRF antes de qualquer middleware: uma requisição forjada não pode disparar efeitos colaterais
             // de middlewares (log, sessão, auditoria, chamadas externas) antes de ser rejeitada.
             $this->validateCsrf($route, $request);
-            if ($this->executeMiddlewares($route->getMiddleware()) === false) {
-                $this->matched = true;
-                $this->publishNotFoundState(false);
-                return;
+            if ($this->executeMiddlewares($route->getMiddleware()) !== false) {
+                $this->executeHandler($route->getControllerMethod(), $route->getParams(), $request);
             }
-            $this->executeHandler($route->getControllerMethod(), $route->getParams(), $request);
-
-            $this->matched = true;
-            $this->publishNotFoundState(false);
-            return;
+        } finally {
+            while ($discardBody && ob_get_level() > $level) {
+                ob_end_clean();
+            }
         }
+
+        $this->matched = true;
+        $this->publishNotFoundState(false);
+    }
+
+    /**
+     * Métodos das rotas cujo padrão casa com a URI da requisição (sem executar nada).
+     * Um caminho com GET também aceita HEAD, que entra no Allow.
+     *
+     * @return string[]
+     */
+    public function allowedMethodsFor(Request $request): array
+    {
+        $allowed = [];
+        foreach ($this->routes as $route) {
+            $route = $this->normalizeRoute($route);
+            $method = $route->getHttpMethod();
+            if ($method === $request->getMethod() || in_array($method, $allowed, true)) {
+                continue;
+            }
+            $probe = new Request($method, $request->getUri(), [], [], [], [], null);
+            if ($route->matches($probe, $this->trie)) {
+                $allowed[] = $method;
+            }
+        }
+
+        if (in_array('GET', $allowed, true) && $request->getMethod() !== 'HEAD' && !in_array('HEAD', $allowed, true)) {
+            $allowed[] = 'HEAD';
+        }
+
+        return $allowed;
     }
 
     private function validateCsrf(Route $route, Request $request): void
@@ -71,7 +144,7 @@ class RouterDispatcher
         $token = $presente ? $post['_token'] : null;
         if ($presente && !is_string($token)) {
             // _token presente com tipo inválido (null, array, número...): rejeita, sem cair no header.
-            throw new \RuntimeException('CSRF token inválido ou ausente.');
+            throw new CsrfException();
         }
         if (!$presente || $token === '') {
             // Requisições AJAX/JSON enviam o token no header X-CSRF-Token.
@@ -80,7 +153,7 @@ class RouterDispatcher
         }
 
         if ($expected === '' || !is_string($token) || !hash_equals($expected, $token)) {
-            throw new \RuntimeException('CSRF token inválido ou ausente.');
+            throw new CsrfException();
         }
     }
 

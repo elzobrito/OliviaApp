@@ -6,14 +6,19 @@
     RewriteRule ^storage(?:/|$) - [NC,R=404,L]
     RewriteCond %{THE_REQUEST} /index.php [NC]
     RewriteRule ^(.*)index\.php$ /$1/ [R=301,L,NC,NE]
-    Header set X-XSS-Protection "1; mode=block"
-    Header always append X-Frame-Options "DENY"
-    Header always set X-Content-Type-Options "nosniff"
-    Header set Strict-Transport-Security "max-age=631138519"
-    Header set Referrer-Policy "same-origin"
-    Header set Permissions-Policy "geolocation 'self'; microphone 'none';camera 'none';fullscreen 'self'"
-    Header set Content-Security-Policy "default-src http:; font-src http: data:; img-src https: data:; script-src 'self' https:; style-src 'self' http:;"
     RewriteCond %{REQUEST_FILENAME} !-f
     RewriteCond %{REQUEST_FILENAME} !-d
     RewriteRule ^ index.php [L]
+</IfModule>
+
+# OLIVIA-SEC-320: os headers de segurança das páginas são enviados pelo PHP (Config::sendSecurityHeaders,
+# com CSP por nonce e HSTS só em HTTPS), também em nginx/FPM. Aqui ficam só os valores de reserva para
+# arquivos estáticos servidos pelo Apache: "setifempty" não sobrescreve nem duplica o que o PHP enviou.
+<IfModule mod_headers.c>
+    Header setifempty Content-Security-Policy "default-src 'self'; object-src 'none'; base-uri 'self'; form-action 'self'; frame-ancestors 'none'"
+    Header setifempty X-Content-Type-Options "nosniff"
+    Header setifempty X-Frame-Options "DENY"
+    Header setifempty Referrer-Policy "same-origin"
+    Header setifempty Permissions-Policy "camera=(), microphone=(), geolocation=(), payment=(), usb=()"
+    Header always unset X-Powered-By
 </IfModule>

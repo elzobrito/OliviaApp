@@ -7,11 +7,11 @@
     "run": {
       "run_id": "RUN-0001",
       "status": "success",
-      "last_event_seq": 333,
-      "projection_hash_sha256": "0986a2b9790be6f715453c60ed372e4bd04e950e35c69dc31d7e3398a6b0ac3f",
+      "last_event_seq": 427,
+      "projection_hash_sha256": "911bb201098aa18791ac608456be2007446f724a74235914ce814aa14a6cbf06",
       "verify_status": "ok"
     },
-    "updated_at": "2026-11-21T12:57:31Z"
+    "updated_at": "2026-11-24T18:42:57Z"
   },
   "project": {
     "name": "esaa-core",
@@ -1533,15 +1533,627 @@
         ]
       },
       "completed_at": "2026-11-21T12:57:31Z"
+    },
+    {
+      "task_id": "OLIVIA-DB-315",
+      "task_kind": "impl",
+      "title": "Encapsular a configuracao de banco no framework (DatabaseConfig) e remover fallback fixo",
+      "description": "lib/Database.php (codigo da aplicacao) concentra regras de seguranca do framework: parse do OLIVIA_DB_DSN, recusa de credenciais no DSN, TLS por padrao fora do loopback, ssl_ca, normalizacao SQLite. O parametro $name e ignorado (uma conexao so). src/database-config/Database.php tem fallback com root, senha vazia e banco obs_escolar fixos. Mover a logica para OliviaDatabaseLibrary\\DatabaseConfig::fromEnvironment(prefixo), tornar ADatabase::getDB concreto resolvendo conexoes nomeadas e deixar lib/Database.php declarativo. Quebra de compatibilidade: a definicao de versao segue fora do escopo.",
+      "status": "done",
+      "depends_on": [
+        "OLIVIA-QA-314"
+      ],
+      "targets": [
+        "src/database/DatabaseConfig.php",
+        "src/database/ADatabase.php",
+        "src/database-config/Database.php",
+        "lib/Database.php",
+        "src/database-model/Model.php",
+        "tests/kernel/behavior_test.php",
+        "README.md"
+      ],
+      "outputs": {
+        "files": [
+          "src/database/DatabaseConfig.php",
+          "src/database/ADatabase.php",
+          "src/database-config/Database.php",
+          "lib/Database.php",
+          "tests/kernel/behavior_test.php",
+          "tests/kernel/framework_contract_test.php",
+          "tests/kernel/security_contract_test.php",
+          "README.md"
+        ]
+      },
+      "immutability": {
+        "done_is_immutable": true
+      },
+      "boundary_grant": [
+        "src/database/DatabaseConfig.php",
+        "src/database/ADatabase.php",
+        "src/database-config/Database.php",
+        "lib/Database.php",
+        "src/database-model/Model.php",
+        "tests/kernel/behavior_test.php",
+        "tests/kernel/framework_contract_test.php",
+        "tests/kernel/security_contract_test.php",
+        "README.md"
+      ],
+      "task_type": "feature",
+      "acceptance_criteria": [
+        "Regras de DSN, TLS, ssl_ca e SQLite ficam em DatabaseConfig no framework; lib/Database.php so declara conexoes.",
+        "DatabaseConfig::fromEnvironment aceita prefixo (ex.: REL_) para conexoes adicionais; getDB(name) resolve por nome.",
+        "Nome de conexao desconhecido e configuracao obrigatoria ausente (driver, database; host e usuario para mysql) lancam excecao; nao existe fallback com root, senha vazia ou banco fixo.",
+        "Comportamento atual de seguranca preservado: credencial no DSN recusada, conflito DB_DRIVER/DSN recusado, TLS ligado por padrao fora do loopback.",
+        "Review emitido por runner diferente de claude-code (humano via human-terminal ou validador independente)."
+      ],
+      "required_review_mode": "security",
+      "assigned_to": "agent-impl",
+      "started_at": "2026-11-21T14:33:31Z",
+      "verification": {
+        "checks": [
+          "behavior_test: getDB(name: 'relatorios') === getDB('relatorios'); OliviaLib\\Database::getDB(name: 'default') === getDB('default'); OliviaDatabaseConfig\\Database::getDB(name: null) === getDB()",
+          "Reflection: OliviaLib\\Database::getDB tem um parametro $name opcional",
+          "framework_contract_test, security_contract_test, behavior_test (-d error_reporting=-1): passed (behavior 489 OK)"
+        ]
+      },
+      "issue_id": "ISS-OLIVIA-DB-315-NAMED-ARG",
+      "fixes": "ISS-OLIVIA-DB-315-NAMED-ARG",
+      "completed_at": "2026-11-24T18:21:51Z"
+    },
+    {
+      "task_id": "OLIVIA-SEC-316",
+      "task_kind": "impl",
+      "title": "Proteger a senha do banco em dumps/traces e aceitar DB_PASSWORD_FILE; desligar TLS remoto so com flag explicita",
+      "description": "A senha do banco circula em array simples, visivel em var_dump, logs e argumentos de stack trace. Nao ha suporte a secrets em arquivo (Docker/Kubernetes). DB_SSL=false desliga TLS para host remoto sem aviso.",
+      "status": "done",
+      "depends_on": [
+        "OLIVIA-DB-315"
+      ],
+      "targets": [
+        "src/database/DatabaseConfig.php",
+        "src/database/Connection.php",
+        "src/database/ConnectionManager.php",
+        "tests/kernel/behavior_test.php",
+        "README.md"
+      ],
+      "outputs": {
+        "files": [
+          "src/database/DatabaseConfig.php",
+          "src/database/Connection.php",
+          "tests/kernel/behavior_test.php",
+          "README.md"
+        ]
+      },
+      "immutability": {
+        "done_is_immutable": true
+      },
+      "boundary_grant": [
+        "src/database/DatabaseConfig.php",
+        "src/database/Connection.php",
+        "src/database/ConnectionManager.php",
+        "tests/kernel/behavior_test.php",
+        "README.md"
+      ],
+      "task_type": "hotfix",
+      "acceptance_criteria": [
+        "Senha nao aparece em var_dump, print_r, var_export nem em stack traces (#[\\SensitiveParameter] e __debugInfo mascarado).",
+        "DB_PASSWORD_FILE le a senha de arquivo; definir DB_PASSWORD e DB_PASSWORD_FILE juntos, ou arquivo ilegivel, falha fechado.",
+        "Desligar TLS para host fora do loopback exige flag explicita (ex.: OLIVIA_DB_ALLOW_INSECURE=true); sem ela, falha fechado.",
+        "Review emitido por runner diferente de claude-code (humano via human-terminal ou validador independente)."
+      ],
+      "required_review_mode": "security",
+      "assigned_to": "agent-impl",
+      "started_at": "2026-11-24T18:28:16Z",
+      "verification": {
+        "checks": [
+          "var_dump/print_r/var_export/(array) da Connection e var_dump do QueryBuilder sem a senha; var_dump mostra ********",
+          "serialize(Connection) lanca LogicException",
+          "zend.exception_ignore_args=0: traces de opcao invalida (ConnectionManager/Connection) e de falha de conexao PDO sem a senha, inclusive excecoes anteriores; teste confirmado sensivel (funcao sem SensitiveParameter vaza)",
+          "DB_PASSWORD_FILE: le senha, remove uma quebra final; junto com DB_PASSWORD (inclusive vazio), inexistente, diretorio, sem permissao (0000) e > 4096 bytes falham fechado sem caminho",
+          "TLS: DB_SSL/OLIVIA_DB_SSL=false em host remoto falha sem OLIVIA_DB_ALLOW_INSECURE=true; flag invalida ou false falha; com flag ssl=false e aviso unico no log; loopback livre; remoto padrao com TLS",
+          "framework_contract_test, security_contract_test, behavior_test (-d error_reporting=-1): passed (behavior 510 OK, tmp removido)"
+        ]
+      },
+      "completed_at": "2026-11-24T18:34:49Z"
+    },
+    {
+      "task_id": "OLIVIA-QA-317",
+      "task_kind": "impl",
+      "title": "Testes e guia de migracao da nova configuracao de banco",
+      "description": "Cobrir DatabaseConfig e protecao de credenciais com checks de valor exato e documentar a migracao de lib/Database.php antigo para o formato declarativo, incluindo usuario de menor privilegio e usuario separado para migrations. Publicar exemplos de configuracao de conexao (.env.example e docker-compose.example.yml) e ignorar .env no git.",
+      "status": "review",
+      "depends_on": [
+        "OLIVIA-SEC-316"
+      ],
+      "targets": [
+        "tests/kernel/behavior_test.php",
+        "tests/kernel/security_contract_test.php",
+        "tests/kernel/framework_contract_test.php",
+        "README.md",
+        "docs/spec/olivia-framework-php85-alpine.md"
+      ],
+      "outputs": {
+        "files": [
+          "tests/kernel/behavior_test.php",
+          "README.md",
+          ".env.example",
+          "docker-compose.example.yml",
+          ".gitignore"
+        ]
+      },
+      "immutability": {
+        "done_is_immutable": true
+      },
+      "boundary_grant": [
+        "tests/kernel/behavior_test.php",
+        "tests/kernel/security_contract_test.php",
+        "tests/kernel/framework_contract_test.php",
+        "README.md",
+        "docs/spec/olivia-framework-php85-alpine.md",
+        ".env.example",
+        "docker-compose.example.yml",
+        ".gitignore"
+      ],
+      "task_type": "maintenance",
+      "acceptance_criteria": [
+        "Checks exigem classe e mensagem de excecao exatas para conexao desconhecida, configuracao ausente, credencial no DSN, DB_PASSWORD_FILE invalido e TLS remoto desligado sem flag.",
+        "Check prova que a senha nao aparece em var_dump/print_r/trace.",
+        "README traz guia de migracao do lib/Database.php antigo, variaveis novas e recomendacao de menor privilegio.",
+        ".env.example lista as variaveis de banco (DSN ou DB_*, TLS, conexao prefixada) sem segredo real; docker-compose.example.yml mostra a app recebendo as variaveis do ambiente, com senha vinda de secret ou .env fora do git; .env esta no .gitignore; README referencia os dois exemplos.",
+        "Suites passam sem depreciacoes com error_reporting=-1 no PHP 8.2 e 8.5.",
+        "Review emitido por runner diferente de claude-code (humano via human-terminal ou validador independente)."
+      ],
+      "required_review_mode": "regression",
+      "assigned_to": "agent-impl",
+      "started_at": "2026-11-24T18:35:20Z",
+      "verification": {
+        "checks": [
+          "PHP 8.5.4: framework_contract, security_contract, behavior_test passed com -d error_reporting=-1, sem depreciacoes (behavior 527 OK)",
+          "PHP 8.2.35 (php:8.2-cli-alpine): framework_contract, security_contract, behavior_test passed com -d error_reporting=-1, sem depreciacoes (behavior 526 OK; diferenca = caminho sem ext-zip)",
+          "docker compose config valida docker-compose.example.yml",
+          "stack real do exemplo (secrets gerados, build do repositorio): GET /livez e / 200 via nginx; app conecta no MySQL 8.4 como olivia_app com senha do secret; aviso TLS unico no log; senha ausente no var_dump",
+          "git check-ignore: .env, .env.local e secrets/ ignorados; .env.example versionavel"
+        ]
+      }
+    },
+    {
+      "task_id": "OLIVIA-DOC-318",
+      "task_kind": "impl",
+      "title": "Atualizar a pagina inicial com as funcionalidades das fases 1-3",
+      "description": "A index (publico/Home/Index.php) so fala da componentizacao de views. Apresentar o que o framework entrega hoje: PHP 8.2-8.5, roteador com middlewares, CSRF por campo/header sem token na URL, sessao segura, banco por ambiente com falha fechada e TLS, pool/transacoes, QueryBuilder com identificadores validados, Crypto AES-256-GCM com contexto, upload validado e suites de comportamento no CI. Novo componente FeatureGrid para os cartoes.",
+      "status": "done",
+      "depends_on": [],
+      "targets": [
+        "publico/Home/Index.php",
+        "publico/Components/Sections/FeatureGrid.php",
+        "publico/Components/Sections/HeroSection.php",
+        "publico/View/ViewModel.php"
+      ],
+      "outputs": {
+        "files": [
+          "publico/Home/Index.php",
+          "publico/Components/Sections/FeatureGrid.php",
+          "publico/Components/Sections/HeroSection.php",
+          "publico/View/ViewModel.php"
+        ]
+      },
+      "immutability": {
+        "done_is_immutable": true
+      },
+      "boundary_grant": [
+        "publico/Home/Index.php",
+        "publico/Components/Sections/FeatureGrid.php",
+        "publico/Components/Sections/HeroSection.php",
+        "publico/View/ViewModel.php"
+      ],
+      "task_type": "maintenance",
+      "acceptance_criteria": [
+        "Index apresenta as funcionalidades atuais sem prometer nada que o codigo nao faz; textos coerentes com o README.",
+        "Novo componente FeatureGrid segue o padrao de Component e escapa toda saida com htmlspecialchars.",
+        "Layout responsivo sem rolagem horizontal em 375px; painel lateral do hero sem area vazia esticada.",
+        "Pagina renderiza sem warnings com error_reporting=-1 e suites do kernel continuam passando.",
+        "Review emitido por runner diferente de claude-code (humano via human-terminal ou validador independente)."
+      ],
+      "required_review_mode": "functional",
+      "assigned_to": "agent-impl",
+      "started_at": "2026-11-24T18:14:43Z",
+      "verification": {
+        "checks": [
+          "php -l publico/Home/Index.php: passou.",
+          "PHP 8.5.4 e PHP 8.2.35: framework_contract_test.php, security_contract_test.php e behavior_test.php passaram com error_reporting=-1.",
+          "GET / pelo index.php: 200, texto corrigido, CSP presente e sem warnings no log do PHP.",
+          "Chrome em 375 e 1440 px: 9 cartões, 1 e 3 colunas respectivamente, sem rolagem horizontal e hero-panel com align-self:start.",
+          "FeatureGrid: as seis propriedades de texto renderizadas com escape HTML."
+        ]
+      },
+      "completed_at": "2026-11-24T18:24:30Z"
+    },
+    {
+      "task_id": "OLIVIA-OPS-319",
+      "task_kind": "impl",
+      "title": "Imagem de producao com pdo_mysql e zip, php.ini de producao e CI conferindo extensoes",
+      "description": "Analise 2026-11-21 (provado com php -m): php:8.5.12-fpm-alpine3.24 nao tem pdo_mysql nem zip e o Dockerfile nao instala; MySQL nao conecta e Office/ODF sao recusados em producao. Sem php.ini: expose_php=On envia X-Powered-By e display_errors=STDOUT ate o Config rodar. CI so confere a versao do PHP.",
+      "status": "done",
+      "depends_on": [],
+      "targets": [
+        "Dockerfile",
+        "docker/php/production.ini",
+        ".github/workflows/quality.yml",
+        "tests/kernel/framework_contract_test.php",
+        "README.md"
+      ],
+      "outputs": {
+        "files": [
+          "Dockerfile",
+          "docker/php/production.ini",
+          ".github/workflows/quality.yml",
+          "tests/kernel/framework_contract_test.php",
+          "README.md"
+        ]
+      },
+      "immutability": {
+        "done_is_immutable": true
+      },
+      "boundary_grant": [
+        "Dockerfile",
+        "docker/php/production.ini",
+        ".github/workflows/quality.yml",
+        "tests/kernel/framework_contract_test.php",
+        "README.md"
+      ],
+      "task_type": "hotfix",
+      "acceptance_criteria": [
+        "Imagem final tem pdo_mysql, pdo_sqlite, zip, fileinfo, openssl e sodium; build sem toolchain de compilacao na camada final.",
+        "php.ini de producao na imagem: expose_php=Off, display_errors=Off, display_startup_errors=Off, log_errors=On; sem X-Powered-By na resposta.",
+        "Job container-smoke do CI falha se faltar qualquer extensao exigida; framework_contract_test confere o Dockerfile.",
+        "README lista as extensoes exigidas e o php.ini de producao.",
+        "Review emitido por runner diferente de claude-code (humano via human-terminal ou validador independente)."
+      ],
+      "required_review_mode": "release",
+      "assigned_to": "agent-impl",
+      "started_at": "2026-11-22T13:39:20Z",
+      "verification": {
+        "checks": [
+          "docker build php:8.5.12-fpm-alpine3.24: ok",
+          "imagem: pdo_mysql, pdo_sqlite, zip, fileinfo, openssl, sodium carregadas",
+          "imagem: expose_php/display_errors/display_startup_errors Off, log_errors On (CLI e php-fpm -i)",
+          "imagem final sem gcc/cc/make",
+          "HTTP na imagem: sem X-Powered-By",
+          "steps container-smoke do CI rodados localmente: PASS; contra imagem base falham (pdo_mysql, zip)",
+          "framework_contract_test, security_contract_test, behavior_test (-d error_reporting=-1): passed"
+        ]
+      },
+      "completed_at": "2026-11-22T14:06:49Z"
+    },
+    {
+      "task_id": "OLIVIA-SEC-320",
+      "task_kind": "impl",
+      "title": "Headers de seguranca emitidos pelo PHP e CSP que nao quebra o skeleton",
+      "description": "Analise 2026-11-21 (provado no navegador): a CSP do .htaccess (style-src 'self' http:, sem 'unsafe-inline' nem nonce) bloqueia o <style> inline do ViewModel e a pagina renderiza sem estilo; as fontes http: liberam qualquer origem. Os Header set ficam dentro de <IfModule mod_rewrite.c> e exigem mod_headers sem guarda. Em nginx/PHP-FPM (imagem de producao) nenhum header de seguranca e enviado. X-XSS-Protection e obsoleto e HSTS vai tambem em HTTP.",
+      "status": "done",
+      "depends_on": [
+        "OLIVIA-OPS-319"
+      ],
+      "targets": [
+        ".htaccess",
+        "lib/Config.php",
+        "publico/View/ViewModel.php",
+        "publico/View/ViewModelErro.php",
+        "tests/kernel/behavior_test.php",
+        "tests/kernel/security_contract_test.php",
+        "README.md"
+      ],
+      "outputs": {
+        "files": [
+          ".htaccess",
+          "lib/Config.php",
+          "publico/View/ViewModel.php",
+          "publico/View/ViewModelErro.php",
+          "tests/kernel/behavior_test.php",
+          "tests/kernel/security_contract_test.php",
+          "README.md"
+        ]
+      },
+      "immutability": {
+        "done_is_immutable": true
+      },
+      "boundary_grant": [
+        ".htaccess",
+        "lib/Config.php",
+        "publico/View/ViewModel.php",
+        "publico/View/ViewModelErro.php",
+        "tests/kernel/behavior_test.php",
+        "tests/kernel/security_contract_test.php",
+        "README.md"
+      ],
+      "task_type": "hotfix",
+      "acceptance_criteria": [
+        "Headers de seguranca (CSP, X-Content-Type-Options, X-Frame-Options/frame-ancestors, Referrer-Policy, Permissions-Policy) emitidos pelo PHP em toda resposta, inclusive em nginx/FPM; HSTS so em requisicao segura (Config::isSecureRequest).",
+        "CSP sem fontes de esquema amplo (http:/https:) nem 'unsafe-inline'; estilo do skeleton liberado por nonce por requisicao ou arquivo estatico same-origin.",
+        "Index e paginas de erro renderizam com estilo com a CSP aplicada (prova HTTP real no behavior_test e conferencia no navegador).",
+        ".htaccess: diretivas Header protegidas por IfModule mod_headers e fora do bloco de mod_rewrite; sem duplicar headers ja enviados pelo PHP.",
+        "Review emitido por runner diferente de claude-code (humano via human-terminal ou validador independente)."
+      ],
+      "required_review_mode": "security",
+      "assigned_to": "agent-impl",
+      "started_at": "2026-11-22T14:10:26Z",
+      "verification": {
+        "checks": [
+          "framework_contract_test, security_contract_test, behavior_test (-d error_reporting=-1): passed",
+          "behavior_test HTTP real (php -S): headers unicos em /, /error404 e /livez; style nonce = nonce da CSP; nonce muda por requisicao; HSTS so com X-Forwarded-Proto https de proxy confiavel",
+          "navegador (php -S): index e /error404 renderizam com estilo sob a CSP, console sem violacao de CSP",
+          "nginx 1.27 + imagem de producao (php-fpm 8.5.12): CSP, nosniff, DENY, Referrer-Policy, Permissions-Policy em /, /error404, /livez; sem X-Powered-By",
+          "Apache php:8.5-apache com mod_headers: cada header uma vez nas paginas; estatico recebe reserva via setifempty",
+          "Apache sem mod_headers: sem 500; paginas mantem headers enviados pelo PHP"
+        ]
+      },
+      "completed_at": "2026-11-22T14:18:59Z"
+    },
+    {
+      "task_id": "OLIVIA-SEC-321",
+      "task_kind": "impl",
+      "title": "Download: contencao em diretorio base, Content-Disposition seguro e Range conforme RFC 7233",
+      "description": "Analise 2026-11-21 (provado por HTTP): Download::now aceita qualquer caminho (/etc/passwd foi servido), embora o README recomende servir uploads por ele; nome do arquivo entra sem escape no Content-Disposition (a\"; filename=evil.html injeta parametro); Range bytes=-5 devolve os primeiros bytes; range fora do arquivo devolve 206 em vez de 416; sem X-Content-Type-Options; caminho completo vaza na mensagem de excecao.",
+      "status": "done",
+      "depends_on": [
+        "OLIVIA-SEC-320"
+      ],
+      "targets": [
+        "src/download/Download.php",
+        "tests/kernel/behavior_test.php",
+        "README.md"
+      ],
+      "outputs": {
+        "files": [
+          "src/download/Download.php",
+          "tests/kernel/behavior_test.php",
+          "README.md"
+        ]
+      },
+      "immutability": {
+        "done_is_immutable": true
+      },
+      "boundary_grant": [
+        "src/download/Download.php",
+        "tests/kernel/behavior_test.php",
+        "README.md"
+      ],
+      "task_type": "hotfix",
+      "acceptance_criteria": [
+        "Arquivo so e servido dentro de um diretorio base (padrao OLIVIA_UPLOAD_DIR, configuravel no construtor), com realpath e recusa de symlink para fora; fora da base falha fechado.",
+        "Content-Disposition com filename ASCII saneado (sem aspas, barra invertida, CR/LF ou controle) e filename* RFC 5987.",
+        "Range: sufixo bytes=-N devolve os ultimos N bytes; range insatisfazivel devolve 416 com Content-Range bytes */tamanho; multiplos ranges ou sintaxe invalida devolvem o arquivo inteiro com 200.",
+        "Resposta inclui X-Content-Type-Options: nosniff; mensagens de excecao nao expoem o caminho absoluto.",
+        "Provas HTTP reais no behavior_test para contencao, nome injetado e cada caso de Range.",
+        "Review emitido por runner diferente de claude-code (humano via human-terminal ou validador independente)."
+      ],
+      "required_review_mode": "security",
+      "assigned_to": "agent-impl",
+      "started_at": "2026-11-22T19:04:42Z",
+      "verification": {
+        "checks": [
+          "PHP 8.5.4: lint dos três arquivos PHP editados passou",
+          "PHP 8.5.4: framework_contract_test 189 OK; security_contract_test 31 OK; behavior_test 458 OK, incluindo php -S",
+          "Linux: OLIVIA_UPLOAD_DIR preserva a barra invertida na base, aceita o arquivo interno e recusa o diretório vizinho",
+          "HTTP real: If-Range com ETag da versão anterior retorna 200 e os bytes da versão atual quando o conteúdo muda com tamanho, mtime e inode preservados"
+        ]
+      },
+      "completed_at": "2026-11-23T14:33:39Z"
+    },
+    {
+      "task_id": "OLIVIA-SEC-322",
+      "task_kind": "impl",
+      "title": "Tratamento global de erros (403/405/500) e fim do memory_limit ilimitado",
+      "description": "Analise 2026-11-21 (provado por HTTP): sem handler global de excecoes; POST com CSRF invalido termina em 500 com corpo vazio; nao ha pagina de 500 nem resposta 405; com APP_DEBUG=true o trace completo vai para a tela. lib/Config.php define memory_limit=-1 em toda requisicao.",
+      "status": "done",
+      "depends_on": [
+        "OLIVIA-SEC-321"
+      ],
+      "targets": [
+        "lib/Config.php",
+        "index.php",
+        "src/router/RouterDispatcher.php",
+        "src/router/CsrfException.php",
+        "lib/ErrorHandler.php",
+        "publico/View/ViewModelErro.php",
+        "publico/E500.php",
+        "tests/kernel/behavior_test.php",
+        "tests/kernel/security_contract_test.php",
+        "README.md"
+      ],
+      "outputs": {
+        "files": [
+          "lib/Config.php",
+          "index.php",
+          "src/router/RouterDispatcher.php",
+          "src/router/CsrfException.php",
+          "src/router/MethodNotAllowedException.php",
+          "lib/ErrorHandler.php",
+          "publico/View/ViewModelErro.php",
+          "publico/E500.php",
+          "publico/Components/Feedback/ErrorState.php",
+          "tests/kernel/behavior_test.php",
+          "tests/kernel/security_contract_test.php",
+          "README.md"
+        ]
+      },
+      "immutability": {
+        "done_is_immutable": true
+      },
+      "boundary_grant": [
+        "lib/Config.php",
+        "index.php",
+        "src/router/RouterDispatcher.php",
+        "src/router/CsrfException.php",
+        "src/router/MethodNotAllowedException.php",
+        "lib/ErrorHandler.php",
+        "publico/View/ViewModelErro.php",
+        "publico/E500.php",
+        "publico/Components/Feedback/ErrorState.php",
+        "tests/kernel/behavior_test.php",
+        "tests/kernel/security_contract_test.php",
+        "README.md"
+      ],
+      "task_type": "hotfix",
+      "acceptance_criteria": [
+        "Falha de CSRF responde 403 com pagina de erro (excecao dedicada, nao RuntimeException generica).",
+        "Excecao nao tratada responde 500 com pagina generica e registra a excecao em log; detalhe so aparece com APP_DEBUG=true.",
+        "Rota existente com metodo diferente responde 405 com header Allow.",
+        "Config nao altera memory_limit; o limite do php.ini/ambiente vale.",
+        "Provas HTTP reais no behavior_test para 403, 405 e 500 (status, corpo nao vazio, sem trace com APP_DEBUG desligado).",
+        "Review emitido por runner diferente de claude-code (humano via human-terminal ou validador independente)."
+      ],
+      "required_review_mode": "security",
+      "assigned_to": "agent-impl",
+      "started_at": "2026-11-23T14:37:59Z",
+      "verification": {
+        "checks": [
+          "HTTP real (php -S): HEAD / 200, HEAD /livez 200, HEAD /error404 404, todos sem corpo e sem Location",
+          "HTTP real: HEAD em caminho inexistente -> 302 /error404 e HEAD /error404 -> 404 (sem loop)",
+          "HTTP real: POST / e PUT /livez -> 405 Allow: GET, HEAD; HEAD em rota so POST -> 405 Allow: POST sem corpo; HEAD em rota que falha -> 500 sem corpo",
+          "unit: HEAD usa a rota GET sem saida e sem marcar 404; deteccao do 405 nao chama handler",
+          "framework_contract_test, security_contract_test, behavior_test (-d error_reporting=-1): passed (behavior 489 OK, tmp removido)"
+        ]
+      },
+      "issue_id": "ISS-OLIVIA-SEC-322-HEAD",
+      "fixes": "ISS-OLIVIA-SEC-322-HEAD",
+      "completed_at": "2026-11-24T18:21:46Z"
+    },
+    {
+      "task_id": "OLIVIA-SEC-321-UPLOAD-SCOPE",
+      "task_kind": "impl",
+      "title": "Regularizar a normalização do diretório base de Upload",
+      "description": "Regulariza o arquivo src/upload/Upload.php gravado no evento 373 e apontado pelo issue ISS-OLIVIA-SEC-321-BOUNDARY-001 (evento 374). Cobre somente a normalização compartilhada de OLIVIA_UPLOAD_DIR, com entrega auditável e revisão de segurança independente. Preserva os eventos originais.",
+      "status": "done",
+      "depends_on": [
+        "OLIVIA-SEC-320"
+      ],
+      "targets": [
+        "src/upload/Upload.php"
+      ],
+      "outputs": {
+        "files": [
+          "src/upload/Upload.php"
+        ]
+      },
+      "immutability": {
+        "done_is_immutable": true
+      },
+      "boundary_grant": [
+        "src/upload/Upload.php"
+      ],
+      "task_type": "maintenance",
+      "acceptance_criteria": [
+        "Linux preserva barra invertida literal ao fim do nome da base; a criação dos ancestrais usa a base normalizada.",
+        "A entrega registra somente src/upload/Upload.php e identifica o artefato do evento 373 e o issue do evento 374.",
+        "Revisão de segurança por runner independente do implementador."
+      ],
+      "required_review_mode": "security",
+      "assigned_to": "agent-impl",
+      "started_at": "2026-11-23T14:30:36Z",
+      "verification": {
+        "checks": [
+          "php -l src/upload/Upload.php passou.",
+          "SHA-256 de Upload.php confere com o artefato do evento 373.",
+          "PHP 8.5.4 em cópia isolada: framework_contract_test 189; security_contract_test 31; behavior_test 458, incluindo base padrão Linux com barra invertida e upload real."
+        ]
+      },
+      "completed_at": "2026-11-23T14:33:37Z"
+    },
+    {
+      "task_id": "OLIVIA-DOC-323",
+      "task_kind": "impl",
+      "title": "README: descrever o roteador como ele e (lista de rotas + regex), sem arvore Trie",
+      "description": "Resolve ISS-OLIVIA-DOC-318-README-ROUTER. O README (linha 3, linha 97 e tabela de namespaces) diz que o roteador usa indexacao em arvore Trie. RouterDispatcher percorre a lista de rotas em ordem e Trie::searchRegex so aplica preg_match no caminho; nao existe arvore. Depende de DB-315 e SEC-322 porque as duas tambem alteram README.md e estao em review.",
+      "status": "done",
+      "depends_on": [
+        "OLIVIA-DB-315",
+        "OLIVIA-SEC-322"
+      ],
+      "targets": [
+        "README.md"
+      ],
+      "outputs": {
+        "files": [
+          "README.md"
+        ]
+      },
+      "immutability": {
+        "done_is_immutable": true
+      },
+      "boundary_grant": [
+        "README.md"
+      ],
+      "task_type": "maintenance",
+      "acceptance_criteria": [
+        "README nao atribui indexacao em arvore ao roteador: abertura, secao de src/router/ e tabela de namespaces descrevem rotas percorridas em ordem por metodo HTTP e padrao de URL convertido em regex (classe Trie mantida so por compatibilidade de nome).",
+        "Texto coerente com publico/Home/Index.php da DOC-318 (Rotas por metodo HTTP e padrao de URL) e com o 405/HEAD da SEC-322.",
+        "Nenhuma outra secao do README muda de sentido; tres suites do kernel continuam passando.",
+        "Review emitido por runner diferente do implementador e de claude-code (humano via human-terminal ou validador independente)."
+      ],
+      "required_review_mode": "docs",
+      "assigned_to": "agent-impl",
+      "started_at": "2026-11-24T18:21:57Z",
+      "verification": {
+        "checks": [
+          "Diff com apenas quatro alterações no README. Conferência com Router::route, RouterDispatcher::dispatch, Route::matches, Trie::searchRegex e o cartão da home.",
+          "PHP 8.5.4 e 8.2.35: framework_contract_test, security_contract_test e behavior_test passaram com error_reporting=-1, sem depreciações ou warnings PHP.",
+          "HTTP no front controller: HEAD / e /livez retornam 200 e HEAD /error404 retorna 404, todos sem corpo e sem Location. POST / e PUT /livez retornam 405 com Allow: GET, HEAD."
+        ]
+      },
+      "completed_at": "2026-11-24T18:25:19Z"
+    },
+    {
+      "task_id": "HF-ISS-OLIVIA-SEC-316-PWFILE-STATCACHE",
+      "task_kind": "impl",
+      "title": "Hotfix for ISS-OLIVIA-SEC-316-PWFILE-STATCACHE",
+      "description": "Apply a minimal hotfix to resolve issue ISS-OLIVIA-SEC-316-PWFILE-STATCACHE without regressing immutable done tasks.",
+      "status": "review",
+      "depends_on": [],
+      "targets": [
+        "ISS-OLIVIA-SEC-316-PWFILE-STATCACHE"
+      ],
+      "outputs": {
+        "files": [
+          "src/database/DatabaseConfig.php"
+        ]
+      },
+      "immutability": {
+        "done_is_immutable": true
+      },
+      "is_hotfix": true,
+      "issue_id": "ISS-OLIVIA-SEC-316-PWFILE-STATCACHE",
+      "fixes": "ISS-OLIVIA-SEC-316-PWFILE-STATCACHE",
+      "scope_patch": [
+        "src/database/DatabaseConfig.php"
+      ],
+      "required_verification": [
+        "unit",
+        "regression"
+      ],
+      "baseline_id": "B-000",
+      "boundary_grant": [
+        "src/database/DatabaseConfig.php"
+      ],
+      "assigned_to": "agent-impl",
+      "started_at": "2026-11-24T18:40:17Z",
+      "verification": {
+        "checks": [
+          "PHP 8.2.35 (php:8.2-cli-alpine): framework_contract, security_contract e behavior_test passed (526 OK; a diferenca para o 8.5 e so o caminho sem ext-zip)",
+          "PHP 8.5.4: framework_contract, security_contract e behavior_test passed (527 OK)",
+          "SEC-316 'arquivo de senha grande demais falha fechado' e QA-317 (arquivo reescrito com tamanhos diferentes no mesmo processo) passam nas duas versoes"
+        ]
+      }
     }
   ],
   "indexes": {
     "by_status": {
-      "done": 31,
+      "done": 40,
+      "review": 2,
       "todo": 1
     },
     "by_kind": {
-      "impl": 26,
+      "impl": 37,
       "qa": 3,
       "spec": 3
     }

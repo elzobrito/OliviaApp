@@ -179,6 +179,7 @@ namespace {
     }
     assert_true($missingCa, 'ssl=true without CA file is rejected');
 
+    putenv('DB_USERNAME=olivia');
     putenv('OLIVIA_DB_DSN=mysql:host=127.0.0.1;port=3306;dbname=olivia');
     $loopbackDb = \OliviaLib\Database::getDB();
     assert_true($loopbackDb['ssl'] === false, 'loopback DSN defaults ssl=false');
@@ -186,6 +187,62 @@ namespace {
     putenv('OLIVIA_DB_DSN=mysql:host=db.example.com;port=3306;dbname=olivia');
     $remoteDb = \OliviaLib\Database::getDB();
     assert_true($remoteDb['ssl'] === true, 'remote DSN defaults ssl=true');
+
+    putenv('OLIVIA_DB_DSN');
+    putenv('DB_DRIVER=mysql');
+    putenv('DB_DATABASE=olivia');
+    $semHost = '';
+    try {
+        \OliviaLib\Database::getDB();
+    } catch (\RuntimeException $exception) {
+        $semHost = $exception->getMessage();
+    }
+    assert_true($semHost === 'Database host is not configured: set DB_HOST or host in OLIVIA_DB_DSN.', 'mysql without host fails closed (no implicit 127.0.0.1)');
+    foreach (['DB_USERNAME', 'DB_DRIVER', 'DB_DATABASE'] as $envName) {
+        putenv($envName);
+    }
+
+    // OLIVIA-SEC-320: .htaccess sem CSP permissiva nem headers presos ao mod_rewrite
+    $htaccess = (string) file_get_contents($root . '/.htaccess');
+    $blocoRewrite = preg_match('/<IfModule mod_rewrite\.c>(.*?)<\/IfModule>/s', $htaccess, $m) === 1 ? $m[1] : '';
+    assert_true($blocoRewrite !== '' && stripos($blocoRewrite, 'Header ') === false, '.htaccess has no Header directive inside the mod_rewrite block');
+    $blocoHeaders = preg_match('/<IfModule mod_headers\.c>(.*?)<\/IfModule>/s', $htaccess, $m) === 1 ? $m[1] : '';
+    $semComentarios = preg_replace('/^\s*#.*$/m', '', $htaccess);
+    assert_true($blocoHeaders !== '' && preg_match_all('/^\s*Header\s/m', (string) $semComentarios) === preg_match_all('/^\s*Header\s/m', $blocoHeaders), '.htaccess Header directives are all guarded by IfModule mod_headers');
+    assert_true(preg_match('/^\s*Header\s+(?!setifempty\b|always\s+unset\b)/m', $blocoHeaders) !== 1, '.htaccess only sets headers with setifempty (no duplicates of PHP headers)');
+    assert_true(stripos($htaccess, 'X-XSS-Protection') === false && stripos($htaccess, 'Strict-Transport-Security') === false, '.htaccess drops X-XSS-Protection and HSTS over plain HTTP');
+    assert_true(preg_match("/(?<![\w-])(https?|data):(?=[\s;\"])/", (string) preg_replace('/(img|font)-src[^;\"]*/', '', $htaccess)) !== 1 && stripos($htaccess, 'unsafe-inline') === false, '.htaccess CSP has no broad scheme sources nor unsafe-inline');
+
+    $configSource = (string) file_get_contents($root . '/lib/Config.php');
+    assert_true(strpos($configSource, 'self::sendSecurityHeaders();') !== false, 'Config sends security headers on every request');
+    foreach (['publico/View/ViewModel.php', 'publico/View/ViewModelErro.php'] as $viewFile) {
+        $viewSource = (string) file_get_contents($root . '/' . $viewFile);
+        assert_true(strpos($viewSource, '<style nonce="<?= htmlspecialchars(\\OliviaLib\\Config::cspNonce()') !== false && substr_count($viewSource, '<style') === 1, "{$viewFile} inline style carries the CSP nonce");
+    }
+
+    // OLIVIA-SEC-322: tratamento global de erros e memory_limit do ambiente
+    assert_true(strpos($configSource, 'memory_limit') === false || preg_match("/ini_set\\(\\s*'memory_limit'/", $configSource) !== 1, 'Config does not change memory_limit');
+    $indexSource = (string) file_get_contents($root . '/index.php');
+    $posHandler = strpos($indexSource, 'ErrorHandler::register();');
+    assert_true($posHandler !== false && $posHandler < strpos($indexSource, 'new Config();'), 'index.php registers ErrorHandler before Config');
+    $dispatcherSource = (string) file_get_contents($root . '/src/router/RouterDispatcher.php');
+    assert_true(substr_count($dispatcherSource, 'throw new CsrfException();') === 2 && strpos($dispatcherSource, "RuntimeException('CSRF") === false, 'CSRF failures throw the dedicated CsrfException');
+    assert_true(is_subclass_of(\OliviaRouter\CsrfException::class, \RuntimeException::class) && is_subclass_of(\OliviaRouter\MethodNotAllowedException::class, \RuntimeException::class), 'router HTTP exceptions stay RuntimeException-compatible');
+
+    // OLIVIA-QA-317: exemplos de configuração sem segredo e .env fora do git
+    $gitignore = preg_split('/\R/', (string) file_get_contents($root . '/.gitignore'));
+    assert_true(in_array('.env', $gitignore, true) && in_array('.env.*', $gitignore, true) && in_array('!.env.example', $gitignore, true) && in_array('secrets/', $gitignore, true), '.gitignore ignores .env, .env.* and secrets/ but keeps .env.example');
+    $envExample = (string) file_get_contents($root . '/.env.example');
+    assert_true(preg_match('/^(?:[A-Z]+_)?(?:DB_PASSWORD|OLIVIA_SMTP_PASSWORD|OLIVIA_APP_KEY)=\S/m', $envExample) !== 1, '.env.example has no real secret value');
+    foreach (['OLIVIA_DB_DSN=', 'DB_USERNAME=', 'DB_PASSWORD_FILE=', 'OLIVIA_DB_SSL_CA=', 'OLIVIA_DB_ALLOW_INSECURE=', 'MIG_DB_USERNAME=', 'MIG_OLIVIA_DB_DSN='] as $envKey) {
+        assert_true(strpos($envExample, $envKey) !== false, ".env.example documents {$envKey}");
+    }
+    $compose = (string) file_get_contents($root . '/docker-compose.example.yml');
+    assert_true(strpos($compose, 'DB_PASSWORD_FILE: /run/secrets/db_password') !== false && strpos($compose, 'MYSQL_PASSWORD_FILE: /run/secrets/db_password') !== false && strpos($compose, 'file: ./secrets/db_password.txt') !== false, 'compose example reads the password from a secret file');
+    assert_true(preg_match('/^\s*(?:DB_PASSWORD|MYSQL_PASSWORD|MYSQL_ROOT_PASSWORD)\s*:/m', $compose) !== 1, 'compose example has no inline password');
+    $readmeQa = (string) file_get_contents($root . '/README.md');
+    assert_true(strpos($readmeQa, '(.env.example)') !== false && strpos($readmeQa, '(docker-compose.example.yml)') !== false && strpos($readmeQa, '### Guia de migração da configuração de banco') !== false, 'README links both examples and the migration guide');
+    assert_true(strpos($readmeQa, "GRANT SELECT, INSERT, UPDATE, DELETE ON olivia.* TO 'olivia_app'") !== false && strpos($readmeQa, "fromEnvironment('MIG_')") !== false, 'README recommends least privilege and a separate migrations user');
 
     if ($failures > 0) {
         fwrite(STDERR, "security contract failed: {$failures} assertion(s)\n");

@@ -1227,7 +1227,7 @@ namespace {
     check(\OliviaTest\Controller\ProbeController::$calls === [['show', '7']], 'rota com {id} despacha e extrai parâmetro');
 
     $chamadasAntes = \OliviaTest\Controller\ProbeController::$calls;
-    check(throws(fn () => $router->execute(['REQUEST_METHOD' => 'POST', 'REQUEST_URI' => '/item', 'POST' => ['_token' => 'errado']]), \RuntimeException::class, 'CSRF') && \OliviaTest\Controller\ProbeController::$calls === $chamadasAntes, 'POST com CSRF inválido lança RuntimeException e não chama o handler');
+    check(throws(fn () => $router->execute(['REQUEST_METHOD' => 'POST', 'REQUEST_URI' => '/item', 'POST' => ['_token' => 'errado']]), \OliviaRouter\CsrfException::class, 'CSRF') && \OliviaTest\Controller\ProbeController::$calls === $chamadasAntes, 'POST com CSRF inválido lança CsrfException e não chama o handler');
     $router->execute(['REQUEST_METHOD' => 'POST', 'REQUEST_URI' => '/item', 'POST' => ['_token' => 'tok-123']]);
     check(end(\OliviaTest\Controller\ProbeController::$calls) === ['save', 'POST'], 'POST com CSRF válido despacha');
 
@@ -1589,11 +1589,11 @@ namespace {
     $csrfRouter->execute(new \OliviaRouter\Request('POST', '/item', [], [], [], ['HTTP_X_CSRF_TOKEN' => $csrfToken]));
     check(\OliviaTest\Controller\ProbeController::$calls === [['save', 'POST']], 'SEC-305 token aceito via header X-CSRF-Token');
     \OliviaTest\Controller\ProbeController::$calls = [];
-    check(throws(fn () => $csrfRouter->execute(new \OliviaRouter\Request('POST', '/item', [], [], [], ['HTTP_X_CSRF_TOKEN' => 'errado'])), \RuntimeException::class, 'CSRF') && \OliviaTest\Controller\ProbeController::$calls === [], 'SEC-305 header X-CSRF-Token inválido é rejeitado sem chamar o handler');
-    check(throws(fn () => $csrfRouter->execute(new \OliviaRouter\Request('POST', '/item', ['_token' => ['array']], [], [], [])), \RuntimeException::class, 'CSRF') && \OliviaTest\Controller\ProbeController::$calls === [], 'SEC-305 token não-string é rejeitado com RuntimeException (sem TypeError) e sem chamar o handler');
+    check(throws(fn () => $csrfRouter->execute(new \OliviaRouter\Request('POST', '/item', [], [], [], ['HTTP_X_CSRF_TOKEN' => 'errado'])), \OliviaRouter\CsrfException::class, 'CSRF') && \OliviaTest\Controller\ProbeController::$calls === [], 'SEC-305 header X-CSRF-Token inválido é rejeitado sem chamar o handler');
+    check(throws(fn () => $csrfRouter->execute(new \OliviaRouter\Request('POST', '/item', ['_token' => ['array']], [], [], [])), \OliviaRouter\CsrfException::class, 'CSRF') && \OliviaTest\Controller\ProbeController::$calls === [], 'SEC-305 token não-string é rejeitado com CsrfException (sem TypeError) e sem chamar o handler');
     $semToken = new \OliviaRouter\Router(new \OliviaRouter\RouterConfig('OliviaTest', 'Controller', 'Middleware', '', true, ''));
     $semToken->post('/item', 'ProbeController#save');
-    check(throws(fn () => $semToken->execute(new \OliviaRouter\Request('POST', '/item', ['_token' => ''], [], [], [])), \RuntimeException::class, 'CSRF') && \OliviaTest\Controller\ProbeController::$calls === [], 'SEC-305 token esperado vazio nunca valida');
+    check(throws(fn () => $semToken->execute(new \OliviaRouter\Request('POST', '/item', ['_token' => ''], [], [], [])), \OliviaRouter\CsrfException::class, 'CSRF') && \OliviaTest\Controller\ProbeController::$calls === [], 'SEC-305 token esperado vazio nunca valida');
 
     // ---------- SEC-311: CSRF antes dos middlewares, token não-string, Secure estrito, proxy confiável ----------
     grupo('SEC-311');
@@ -1601,18 +1601,18 @@ namespace {
     $mwRouter->middleware('SideEffect')->post('/mw', 'ProbeController#save');
     \OliviaTest\Middleware\SideEffect::$calls = 0;
     \OliviaTest\Controller\ProbeController::$calls = [];
-    $forjada = throws(fn () => $mwRouter->execute(new \OliviaRouter\Request('POST', '/mw', ['_token' => 'forjado'], [], [], [])), \RuntimeException::class, 'CSRF');
+    $forjada = throws(fn () => $mwRouter->execute(new \OliviaRouter\Request('POST', '/mw', ['_token' => 'forjado'], [], [], [])), \OliviaRouter\CsrfException::class, 'CSRF');
     check($forjada && \OliviaTest\Middleware\SideEffect::$calls === 0 && \OliviaTest\Controller\ProbeController::$calls === [], 'SEC-311 requisição forjada é rejeitada antes de qualquer middleware');
     seguro(fn () => $mwRouter->execute(new \OliviaRouter\Request('POST', '/mw', ['_token' => $csrfToken], [], [], [])));
     check(\OliviaTest\Middleware\SideEffect::$calls === 1 && \OliviaTest\Controller\ProbeController::$calls === [['save', 'POST']], 'SEC-311 requisição válida executa middleware e handler');
     \OliviaTest\Controller\ProbeController::$calls = [];
-    $arrayComHeader = throws(fn () => $csrfRouter->execute(new \OliviaRouter\Request('POST', '/item', ['_token' => ['x']], [], [], ['HTTP_X_CSRF_TOKEN' => $csrfToken])), \RuntimeException::class, 'CSRF');
+    $arrayComHeader = throws(fn () => $csrfRouter->execute(new \OliviaRouter\Request('POST', '/item', ['_token' => ['x']], [], [], ['HTTP_X_CSRF_TOKEN' => $csrfToken])), \OliviaRouter\CsrfException::class, 'CSRF');
     check($arrayComHeader && \OliviaTest\Controller\ProbeController::$calls === [], 'SEC-311 _token não-string é rejeitado mesmo com header válido (sem fallback)');
     seguro(fn () => $csrfRouter->execute(new \OliviaRouter\Request('POST', '/item', ['_token' => ''], [], [], ['HTTP_X_CSRF_TOKEN' => $csrfToken])));
     check(\OliviaTest\Controller\ProbeController::$calls === [['save', 'POST']], 'SEC-311 _token vazio continua usando o header X-CSRF-Token');
     \OliviaTest\Controller\ProbeController::$calls = [];
     foreach (['null' => null, 'inteiro' => 123, 'booleano' => true] as $rotuloTipo => $valorTipo) {
-        $rejeitadoTipo = throws(fn () => $csrfRouter->execute(new \OliviaRouter\Request('POST', '/item', ['_token' => $valorTipo], [], [], ['HTTP_X_CSRF_TOKEN' => $csrfToken])), \RuntimeException::class, 'CSRF');
+        $rejeitadoTipo = throws(fn () => $csrfRouter->execute(new \OliviaRouter\Request('POST', '/item', ['_token' => $valorTipo], [], [], ['HTTP_X_CSRF_TOKEN' => $csrfToken])), \OliviaRouter\CsrfException::class, 'CSRF');
         check($rejeitadoTipo && \OliviaTest\Controller\ProbeController::$calls === [], "SEC-311 _token presente {$rotuloTipo} é rejeitado mesmo com header válido");
     }
     seguro(fn () => $csrfRouter->execute(new \OliviaRouter\Request('POST', '/item', ['outro' => 'x'], [], [], ['HTTP_X_CSRF_TOKEN' => $csrfToken])));
@@ -1692,7 +1692,7 @@ namespace {
     $juggling = new \OliviaRouter\Router(new \OliviaRouter\RouterConfig('OliviaTest', 'Controller', 'Middleware', '', true, '0e1234'));
     $juggling->post('/item', 'ProbeController#save');
     \OliviaTest\Controller\ProbeController::$calls = [];
-    check(throws(fn () => $juggling->execute(new \OliviaRouter\Request('POST', '/item', ['_token' => '0e5678'], [], [], [])), \RuntimeException::class, 'CSRF') && \OliviaTest\Controller\ProbeController::$calls === [], 'SEC-305 token CSRF comparado de forma estrita (sem type juggling "0e...")');
+    check(throws(fn () => $juggling->execute(new \OliviaRouter\Request('POST', '/item', ['_token' => '0e5678'], [], [], [])), \OliviaRouter\CsrfException::class, 'CSRF') && \OliviaTest\Controller\ProbeController::$calls === [], 'SEC-305 token CSRF comparado de forma estrita (sem type juggling "0e...")');
     seguro(fn () => $juggling->execute(new \OliviaRouter\Request('POST', '/item', ['_token' => '0e1234'], [], [], [])));
     check(\OliviaTest\Controller\ProbeController::$calls === [['save', 'POST']], 'SEC-305 token idêntico continua aceito');
 
@@ -1703,6 +1703,428 @@ namespace {
     $seguros = array_map(fn ($b) => $R::notFoundLocation($b), $maliciosos);
     $todosSeguros = array_reduce($seguros, fn ($ok, $loc) => $ok && $loc[0] === '/' && substr($loc, 0, 2) !== '//' && strpbrk($loc, ":\r\n\\") === false, true);
     check($todosSeguros, 'SEC-305 base path malicioso não gera redirect para outro host nem injeção de header');
+
+    // ---------- DB-315: configuração de banco encapsulada no framework ----------
+    grupo('DB-315');
+    $RE = \RuntimeException::class;
+    foreach (array_keys(getenv()) as $nomeEnv) {
+        if (preg_match('/^(REL_)?(OLIVIA_)?DB_/', (string) $nomeEnv) === 1) {
+            putenv((string) $nomeEnv);
+        }
+    }
+    $BancoApp = new class extends \OliviaDatabaseLibrary\ADatabase {
+        protected static function connections(): array
+        {
+            return [
+                'default' => \OliviaDatabaseLibrary\DatabaseConfig::fromEnvironment(),
+                'relatorios' => \OliviaDatabaseLibrary\DatabaseConfig::fromEnvironment('REL_'),
+            ];
+        }
+    };
+    $Banco = get_class($BancoApp);
+    putenv('DB_DRIVER=sqlite');
+    putenv('DB_DATABASE=' . $tmp . '/padrao.sqlite');
+    check($Banco::getDB()['database'] === $tmp . '/padrao.sqlite', 'DB-315 conexão secundária sem variáveis não impede a padrão (leitura preguiçosa)');
+    check(throws(fn () => $Banco::getDB('relatorios'), $RE, 'Database driver is not configured: set REL_OLIVIA_DB_DSN or REL_DB_DRIVER.'), 'DB-315 conexão secundária sem variáveis falha fechado com os nomes prefixados');
+    putenv('REL_OLIVIA_DB_DSN=mysql:host=db.interno;port=3307;dbname=relatorios');
+    putenv('REL_DB_USERNAME=leitor');
+    putenv('REL_DB_PASSWORD=segredo-rel');
+    check($Banco::getDB('relatorios') === [
+        'driver' => 'mysql',
+        'host' => 'db.interno',
+        'port' => '3307',
+        'database' => 'relatorios',
+        'user' => 'leitor',
+        'password' => 'segredo-rel',
+        'ssl' => true,
+        'ssl_ca' => '',
+    ], 'DB-315 prefixo REL_ resolve a conexão nomeada exata, com TLS por padrão fora do loopback');
+    check($Banco::getDB()['driver'] === 'sqlite' && $Banco::getDB()['user'] === '', 'DB-315 variáveis REL_ não vazam para a conexão padrão');
+    check(throws(fn () => $Banco::getDB('outra'), $RE, 'Unknown database connection "outra".'), 'DB-315 nome de conexão desconhecido lança RuntimeException');
+    check(throws(fn () => $Banco::getDB('mysql'), $RE, 'Unknown database connection "mysql".'), 'DB-315 alias de driver só vale quando bate com o driver da conexão padrão');
+    check($Banco::getDB('sqlite') === $Banco::getDB(), 'DB-315 alias legado $drive = sqlite resolve para a conexão padrão sqlite');
+    check($Banco::getDB(name: 'relatorios') === $Banco::getDB('relatorios') && \OliviaLib\Database::getDB(name: 'default') === \OliviaLib\Database::getDB('default') && \OliviaDatabaseConfig\Database::getDB(name: null) === \OliviaLib\Database::getDB(), 'DB-315 getDB(name: ...) continua aceito como argumento nomeado (API anterior)');
+    $parametroGetDb = (new \ReflectionMethod(\OliviaLib\Database::class, 'getDB'))->getParameters();
+    check(count($parametroGetDb) === 1 && $parametroGetDb[0]->getName() === 'name' && $parametroGetDb[0]->isOptional(), 'DB-315 assinatura pública de getDB mantém o parâmetro $name opcional');
+    check(throws(fn () => $Banco::getDB(['x']), $RE, 'Database connection name must be a string.'), 'DB-315 nome não-string é rejeitado');
+
+    putenv('REL_DB_SSL=talvez');
+    check(throws(fn () => $Banco::getDB('relatorios'), $RE, 'REL_DB_SSL must be a boolean (true/false).'), 'DB-315 valor booleano inválido falha fechado em vez de desligar o TLS');
+    putenv('REL_DB_SSL');
+    putenv('REL_DB_DRIVER=sqlite');
+    check(throws(fn () => $Banco::getDB('relatorios'), $RE, 'REL_DB_DRIVER conflicts with REL_OLIVIA_DB_DSN.'), 'DB-315 conflito entre driver e DSN é rejeitado');
+    putenv('REL_DB_DRIVER');
+    putenv('REL_OLIVIA_DB_DSN=pgsql:host=x;dbname=y');
+    check(throws(fn () => $Banco::getDB('relatorios'), $RE, 'Unsupported database driver in REL_OLIVIA_DB_DSN.'), 'DB-315 driver não suportado no DSN é rejeitado');
+    putenv('REL_OLIVIA_DB_DSN=mysql:host=db.interno;dbname=relatorios;password=x');
+    check(throws(fn () => $Banco::getDB('relatorios'), $RE, 'Database credentials must not be embedded in REL_OLIVIA_DB_DSN.'), 'DB-315 credencial embutida no DSN prefixado é rejeitada');
+    putenv('REL_OLIVIA_DB_DSN=mysql:host=db.interno');
+    check(throws(fn () => $Banco::getDB('relatorios'), $RE, 'Database name is not configured: set REL_DB_DATABASE or dbname in REL_OLIVIA_DB_DSN.'), 'DB-315 mysql sem banco falha fechado');
+    putenv('REL_OLIVIA_DB_DSN');
+    putenv('REL_DB_DRIVER=mysql');
+    putenv('REL_DB_DATABASE=relatorios');
+    check(throws(fn () => $Banco::getDB('relatorios'), $RE, 'Database host is not configured: set REL_DB_HOST or host in REL_OLIVIA_DB_DSN.'), 'DB-315 mysql sem host falha fechado (sem 127.0.0.1 implícito)');
+    putenv('REL_DB_HOST=db.interno');
+    putenv('REL_DB_USERNAME');
+    check(throws(fn () => $Banco::getDB('relatorios'), $RE, 'Database user is not configured: set REL_DB_USERNAME.'), 'DB-315 mysql sem usuário falha fechado (sem root implícito)');
+    putenv('DB_DATABASE');
+    check(throws(fn () => $Banco::getDB(), $RE, 'Database name is not configured: set DB_DATABASE or dbname in OLIVIA_DB_DSN.'), 'DB-315 sqlite sem arquivo falha fechado');
+
+    $SemConexoes = get_class(new class extends \OliviaDatabaseLibrary\ADatabase {});
+    check(throws(fn () => $SemConexoes::getDB(), $RE, 'No database connections are declared.'), 'DB-315 aplicação sem conexões declaradas falha fechado');
+    $ComArray = get_class(new class extends \OliviaDatabaseLibrary\ADatabase {
+        protected static function connections(): array
+        {
+            return ['default' => ['driver' => 'mysql', 'host' => 'x', 'user' => 'root', 'password' => '']];
+        }
+    });
+    check(throws(fn () => $ComArray::getDB(), $RE, 'Database connection "default" must be declared with DatabaseConfig::fromEnvironment().'), 'DB-315 configuração fixa em array (credencial no código) é recusada');
+    check(throws(fn () => \OliviaDatabaseLibrary\DatabaseConfig::fromEnvironment('rel'), \InvalidArgumentException::class, 'Database environment prefix must be'), 'DB-315 prefixo de ambiente inválido é rejeitado');
+
+    // ---------- SEC-316: senha protegida, DB_PASSWORD_FILE e TLS remoto explícito ----------
+    grupo('SEC-316');
+    foreach (array_keys(getenv()) as $nomeEnv) {
+        if (preg_match('/^(REL_)?(OLIVIA_)?DB_/', (string) $nomeEnv) === 1) {
+            putenv((string) $nomeEnv);
+        }
+    }
+    $senha = 'S3nh@-ultra-' . bin2hex(random_bytes(4));
+    $semSenha = fn (string $texto) => strpos($texto, $senha) === false;
+    $conexaoSecreta = new \OliviaDatabaseLibrary\Connection(['driver' => 'mysql', 'host' => '127.0.0.1', 'port' => '1', 'user' => 'u', 'password' => $senha, 'ssl' => false, 'retries' => 0, 'timeout' => 1]);
+    ob_start();
+    var_dump($conexaoSecreta);
+    $dump = (string) ob_get_clean();
+    check($semSenha($dump) && strpos($dump, '********') !== false, 'SEC-316 var_dump da Connection mostra a senha mascarada');
+    check($semSenha(print_r($conexaoSecreta, true)) && $semSenha(var_export($conexaoSecreta, true)) && $semSenha(json_encode((array) $conexaoSecreta) ?: ''), 'SEC-316 print_r, var_export e cast para array da Connection não expõem a senha');
+    check(throws(fn () => serialize($conexaoSecreta), \LogicException::class, 'serializada'), 'SEC-316 Connection não pode ser serializada');
+    ob_start();
+    var_dump(new \OliviaDatabaseLibrary\QueryBuilder($conexaoSecreta));
+    check($semSenha((string) ob_get_clean()), 'SEC-316 var_dump de um QueryBuilder não expõe a senha da conexão');
+    $ignorarArgs = ini_get('zend.exception_ignore_args');
+    ini_set('zend.exception_ignore_args', '0');
+    $traceSemSenha = function (callable $fn) use ($semSenha): bool {
+        try {
+            $fn();
+        } catch (\Throwable $e) {
+            for ($atual = $e; $atual !== null; $atual = $atual->getPrevious()) {
+                if (!$semSenha(var_export($atual->getTrace(), true)) || !$semSenha($atual->getTraceAsString()) || !$semSenha($atual->getMessage())) {
+                    return false;
+                }
+            }
+            return true;
+        }
+        return false;
+    };
+    check($traceSemSenha(fn () => \OliviaDatabaseLibrary\ConnectionManager::get(['host' => 'h', 'user' => 'u', 'password' => $senha, 'ssl' => 'sim'])), 'SEC-316 stack trace de opção inválida (ConnectionManager e Connection) não traz a senha');
+    check($traceSemSenha(fn () => $conexaoSecreta->connect()), 'SEC-316 stack trace de falha ao conectar (PDO) não traz a senha');
+    ini_set('zend.exception_ignore_args', (string) $ignorarArgs);
+
+    // DB_PASSWORD_FILE
+    putenv('REL_OLIVIA_DB_DSN=mysql:host=db.interno;dbname=relatorios');
+    putenv('REL_DB_USERNAME=leitor');
+    $arquivoSenha = $tmp . '/db-password';
+    file_put_contents($arquivoSenha, "segredo-arquivo\n");
+    putenv('REL_DB_PASSWORD_FILE=' . $arquivoSenha);
+    check($Banco::getDB('relatorios')['password'] === 'segredo-arquivo', 'SEC-316 DB_PASSWORD_FILE lê a senha do arquivo, sem a quebra de linha final');
+    file_put_contents($arquivoSenha, "a\r\n");
+    $crlf = $Banco::getDB('relatorios')['password'];
+    file_put_contents($arquivoSenha, "b\n\n");
+    check($crlf === 'a' && $Banco::getDB('relatorios')['password'] === "b\n", 'SEC-316 só uma quebra de linha final (LF ou CRLF) é removida');
+    putenv('REL_DB_PASSWORD=outra');
+    check(throws(fn () => $Banco::getDB('relatorios'), $RE, 'Set only one of REL_DB_PASSWORD or REL_DB_PASSWORD_FILE.'), 'SEC-316 DB_PASSWORD e DB_PASSWORD_FILE juntos falham fechado');
+    putenv('REL_DB_PASSWORD=');
+    check(throws(fn () => $Banco::getDB('relatorios'), $RE, 'Set only one of REL_DB_PASSWORD or REL_DB_PASSWORD_FILE.'), 'SEC-316 DB_PASSWORD vazio definido junto com o arquivo também falha fechado');
+    putenv('REL_DB_PASSWORD');
+    $mensagemArquivo = 'REL_DB_PASSWORD_FILE must point to a readable file.';
+    putenv('REL_DB_PASSWORD_FILE=' . $tmp . '/nao-existe-senha');
+    $inexistente = throws(fn () => $Banco::getDB('relatorios'), $RE, $mensagemArquivo);
+    putenv('REL_DB_PASSWORD_FILE=' . $tmp);
+    $diretorio = throws(fn () => $Banco::getDB('relatorios'), $RE, $mensagemArquivo);
+    check($inexistente && $diretorio, 'SEC-316 DB_PASSWORD_FILE inexistente ou diretório falha fechado');
+    if (function_exists('posix_geteuid') && posix_geteuid() !== 0) {
+        file_put_contents($arquivoSenha, 'x');
+        chmod($arquivoSenha, 0000);
+        putenv('REL_DB_PASSWORD_FILE=' . $arquivoSenha);
+        check(throws(fn () => $Banco::getDB('relatorios'), $RE, $mensagemArquivo), 'SEC-316 DB_PASSWORD_FILE sem permissão de leitura falha fechado');
+        chmod($arquivoSenha, 0600);
+    }
+    file_put_contents($arquivoSenha, str_repeat('x', 4097));
+    putenv('REL_DB_PASSWORD_FILE=' . $arquivoSenha);
+    check(throws(fn () => $Banco::getDB('relatorios'), $RE, 'REL_DB_PASSWORD_FILE is larger than 4096 bytes.'), 'SEC-316 arquivo de senha grande demais falha fechado');
+    try {
+        $Banco::getDB('relatorios');
+        $mensagemSemCaminho = false;
+    } catch (\RuntimeException $e) {
+        $mensagemSemCaminho = strpos($e->getMessage(), $tmp) === false;
+    }
+    check($mensagemSemCaminho, 'SEC-316 mensagens de DB_PASSWORD_FILE não expõem o caminho');
+    putenv('REL_DB_PASSWORD_FILE');
+
+    // TLS remoto só desliga com flag explícita
+    $logTls = $tmp . '/tls.log';
+    $errorLogAntes = ini_get('error_log');
+    ini_set('error_log', $logTls);
+    putenv('REL_DB_PASSWORD=segredo');
+    putenv('REL_DB_SSL=false');
+    check(throws(fn () => $Banco::getDB('relatorios'), $RE, 'TLS is disabled for a non-loopback database host: set REL_OLIVIA_DB_ALLOW_INSECURE=true to allow it explicitly.'), 'SEC-316 DB_SSL=false para host remoto falha fechado sem a flag');
+    putenv('REL_DB_SSL');
+    putenv('REL_OLIVIA_DB_SSL=false');
+    check(throws(fn () => $Banco::getDB('relatorios'), $RE, 'REL_OLIVIA_DB_ALLOW_INSECURE=true'), 'SEC-316 OLIVIA_DB_SSL=false para host remoto também exige a flag');
+    putenv('REL_OLIVIA_DB_ALLOW_INSECURE=talvez');
+    check(throws(fn () => $Banco::getDB('relatorios'), $RE, 'REL_OLIVIA_DB_ALLOW_INSECURE must be a boolean (true/false).'), 'SEC-316 flag com valor inválido falha fechado');
+    putenv('REL_OLIVIA_DB_ALLOW_INSECURE=false');
+    check(throws(fn () => $Banco::getDB('relatorios'), $RE, 'REL_OLIVIA_DB_ALLOW_INSECURE=true'), 'SEC-316 flag false mantém a recusa');
+    putenv('REL_OLIVIA_DB_ALLOW_INSECURE=true');
+    $inseguro = $Banco::getDB('relatorios');
+    $Banco::getDB('relatorios');
+    clearstatcache();
+    $avisos = substr_count((string) @file_get_contents($logTls), 'TLS desligado para host de banco remoto (REL_OLIVIA_DB_ALLOW_INSECURE=true)');
+    check($inseguro['ssl'] === false && $avisos === 1, 'SEC-316 com a flag o TLS remoto desliga e o aviso vai ao log uma vez por processo');
+    putenv('REL_OLIVIA_DB_ALLOW_INSECURE');
+    putenv('REL_OLIVIA_DB_SSL');
+    check($Banco::getDB('relatorios')['ssl'] === true, 'SEC-316 host remoto sem configuração de SSL continua com TLS ligado');
+    putenv('REL_OLIVIA_DB_DSN=mysql:host=127.0.0.1;dbname=relatorios');
+    putenv('REL_DB_SSL=false');
+    check($Banco::getDB('relatorios')['ssl'] === false, 'SEC-316 loopback pode desligar TLS sem a flag');
+    ini_set('error_log', (string) $errorLogAntes);
+
+    // ---------- QA-317: mensagens exatas, senha de ponta a ponta e exemplos de configuração ----------
+    grupo('QA-317');
+    foreach (array_keys(getenv()) as $nomeEnv) {
+        if (preg_match('/^(REL_|MIG_)?(OLIVIA_)?DB_/', (string) $nomeEnv) === 1) {
+            putenv((string) $nomeEnv);
+        }
+    }
+    // Classe e mensagem idênticas (throws() aceita mensagem parcial).
+    $exata = function (callable $fn, string $classe, string $mensagem): bool {
+        try {
+            $fn();
+        } catch (\Throwable $e) {
+            return get_class($e) === $classe && $e->getMessage() === $mensagem;
+        }
+        return false;
+    };
+    $semConexoes = new class extends \OliviaDatabaseLibrary\ADatabase {
+    };
+    check($exata(fn () => $semConexoes::getDB(), $RE, 'No database connections are declared.'), 'QA-317 sem conexões declaradas: RuntimeException exata');
+    check($exata(fn () => $Banco::getDB('outra'), $RE, 'Unknown database connection "outra".'), 'QA-317 conexão desconhecida: RuntimeException exata');
+    check($exata(fn () => $Banco::getDB(), $RE, 'Database driver is not configured: set OLIVIA_DB_DSN or DB_DRIVER.')
+        && $exata(fn () => $Banco::getDB('relatorios'), $RE, 'Database driver is not configured: set REL_OLIVIA_DB_DSN or REL_DB_DRIVER.'), 'QA-317 driver ausente: mensagem exata, com e sem prefixo');
+    putenv('DB_DRIVER=mysql');
+    check($exata(fn () => $Banco::getDB(), $RE, 'Database name is not configured: set DB_DATABASE or dbname in OLIVIA_DB_DSN.'), 'QA-317 banco ausente: mensagem exata');
+    putenv('DB_DATABASE=olivia');
+    check($exata(fn () => $Banco::getDB(), $RE, 'Database host is not configured: set DB_HOST or host in OLIVIA_DB_DSN.'), 'QA-317 host ausente (sem 127.0.0.1 implícito): mensagem exata');
+    putenv('DB_HOST=db.interno');
+    check($exata(fn () => $Banco::getDB(), $RE, 'Database user is not configured: set DB_USERNAME.'), 'QA-317 usuário ausente: mensagem exata');
+    putenv('DB_DRIVER');
+    putenv('DB_DATABASE');
+    putenv('DB_HOST');
+    $credenciaisOk = true;
+    foreach (['user=root', 'username=root', 'password=segredo', 'PASSWORD=segredo'] as $credencial) {
+        putenv("OLIVIA_DB_DSN=mysql:host=db;{$credencial};dbname=olivia");
+        $credenciaisOk = $credenciaisOk && $exata(fn () => $Banco::getDB(), $RE, 'Database credentials must not be embedded in OLIVIA_DB_DSN.');
+    }
+    check($credenciaisOk, 'QA-317 credencial no DSN (user, username, password, maiúsculas): mensagem exata');
+    putenv('OLIVIA_DB_DSN=mysql:host=db;dbname=olivia');
+    putenv('DB_USERNAME=olivia_app');
+    $arquivoQa = $tmp . '/qa-db-password';
+    file_put_contents($arquivoQa, 'senha-qa');
+    putenv('DB_PASSWORD_FILE=' . $arquivoQa);
+    putenv('DB_PASSWORD=outra');
+    check($exata(fn () => $Banco::getDB(), $RE, 'Set only one of DB_PASSWORD or DB_PASSWORD_FILE.'), 'QA-317 DB_PASSWORD com DB_PASSWORD_FILE: mensagem exata');
+    putenv('DB_PASSWORD');
+    putenv('DB_PASSWORD_FILE=' . $tmp . '/qa-nao-existe');
+    check($exata(fn () => $Banco::getDB(), $RE, 'DB_PASSWORD_FILE must point to a readable file.'), 'QA-317 DB_PASSWORD_FILE ilegível: mensagem exata');
+    file_put_contents($arquivoQa, str_repeat('x', 5000));
+    putenv('DB_PASSWORD_FILE=' . $arquivoQa);
+    check($exata(fn () => $Banco::getDB(), $RE, 'DB_PASSWORD_FILE is larger than 4096 bytes.'), 'QA-317 DB_PASSWORD_FILE grande demais: mensagem exata');
+    file_put_contents($arquivoQa, "senha-qa-ponta-a-ponta\n");
+    putenv('DB_SSL=false');
+    check($exata(fn () => $Banco::getDB(), $RE, 'TLS is disabled for a non-loopback database host: set OLIVIA_DB_ALLOW_INSECURE=true to allow it explicitly.'), 'QA-317 TLS remoto desligado sem flag: mensagem exata');
+    putenv('DB_SSL');
+
+    // Senha de ponta a ponta: getDB() -> QueryBuilder -> ConnectionManager -> Connection
+    $senhaQa = 'senha-qa-ponta-a-ponta';
+    $configQa = $Banco::getDB();
+    check($configQa['password'] === $senhaQa && $configQa['ssl'] === true, 'QA-317 senha do arquivo chega à configuração (e o TLS remoto fica ligado)');
+    $qbQa = new \OliviaDatabaseLibrary\QueryBuilder($configQa);
+    ob_start();
+    var_dump($qbQa, $qbQa->connection());
+    $dumpQa = (string) ob_get_clean();
+    check(strpos($dumpQa, $senhaQa) === false && strpos(print_r($qbQa, true), $senhaQa) === false && strpos(var_export($qbQa->connection(), true), $senhaQa) === false, 'QA-317 var_dump, print_r e var_export do QueryBuilder e da Connection montados por getDB() não mostram a senha');
+    $ignorarQa = ini_get('zend.exception_ignore_args');
+    ini_set('zend.exception_ignore_args', '0');
+    try {
+        \OliviaDatabaseLibrary\ConnectionManager::get(['host' => 'h', 'user' => 'u', 'password' => $senhaQa, 'ssl' => 'sim']);
+        $traceQa = '';
+    } catch (\Throwable $e) {
+        $traceQa = var_export($e->getTrace(), true) . $e->getTraceAsString() . $e->getMessage();
+    }
+    ini_set('zend.exception_ignore_args', (string) $ignorarQa);
+    check($traceQa !== '' && strpos($traceQa, $senhaQa) === false && strpos($traceQa, 'SensitiveParameterValue') !== false, 'QA-317 trace com argumentos ligados mostra SensitiveParameterValue no lugar das opções');
+    \OliviaDatabaseLibrary\ConnectionManager::reset();
+
+    // .env.example resolve exatamente a configuração documentada
+    $exemplo = (string) file_get_contents($root . '/.env.example');
+    $definidas = [];
+    foreach (preg_split('/\R/', $exemplo) as $linha) {
+        if (preg_match('/^([A-Z][A-Z0-9_]*)=(.*)$/', $linha, $m) === 1) {
+            $definidas[$m[1]] = $m[2];
+        }
+    }
+    foreach (array_keys(getenv()) as $nomeEnv) {
+        if (preg_match('/^(REL_|MIG_)?(OLIVIA_)?DB_/', (string) $nomeEnv) === 1) {
+            putenv((string) $nomeEnv);
+        }
+    }
+    foreach ($definidas as $nome => $valor) {
+        putenv("{$nome}={$valor}");
+    }
+    check(array_keys($definidas) === ['APP_DEBUG', 'OLIVIA_DB_DSN', 'DB_USERNAME', 'DB_PASSWORD_FILE'] && $definidas['DB_PASSWORD_FILE'] === '/run/secrets/db_password', 'QA-317 .env.example define só DSN, usuário e arquivo de senha (nenhuma senha literal)');
+    check($exata(fn () => \OliviaLib\Database::getDB(), $RE, 'DB_PASSWORD_FILE must point to a readable file.') || is_readable('/run/secrets/db_password'), 'QA-317 .env.example sem o secret montado falha fechado');
+    putenv('DB_PASSWORD_FILE=' . $arquivoQa);
+    check(\OliviaLib\Database::getDB() === [
+        'driver' => 'mysql',
+        'host' => 'db',
+        'port' => '3306',
+        'database' => 'olivia',
+        'user' => 'olivia_app',
+        'password' => $senhaQa,
+        'ssl' => true,
+        'ssl_ca' => '',
+    ], 'QA-317 .env.example com o secret montado resolve a configuração exata (TLS ligado para o host db)');
+    putenv('APP_DEBUG');
+
+    // ---------- SEC-320: headers de segurança ----------
+    grupo('SEC-320');
+    $nonce = \OliviaLib\Config::cspNonce();
+    check(preg_match('/^[A-Za-z0-9+\/]{22}==$/', $nonce) === 1 && \OliviaLib\Config::cspNonce() === $nonce, 'SEC-320 cspNonce() tem 128 bits em base64 e é estável na requisição');
+    $csp = \OliviaLib\Config::contentSecurityPolicy();
+    check(strpos($csp, "style-src 'self' 'nonce-{$nonce}'") !== false && strpos($csp, "script-src 'self' 'nonce-{$nonce}'") !== false, 'SEC-320 CSP libera estilo e script inline só com o nonce');
+    check(preg_match('/(?<![\w-])https?:(?=[\s;]|$)/', $csp) !== 1 && stripos($csp, 'unsafe-') === false, 'SEC-320 CSP sem http:/https: amplos nem unsafe-*');
+    check(strpos($csp, "frame-ancestors 'none'") !== false && strpos($csp, "object-src 'none'") !== false && strpos($csp, "base-uri 'self'") !== false && strpos($csp, "form-action 'self'") !== false, 'SEC-320 CSP com frame-ancestors, object-src, base-uri e form-action');
+    $servidorAntes = $_SERVER;
+    putenv('OLIVIA_FORCE_SECURE');
+    unset($_SERVER['HTTPS'], $_SERVER['SERVER_PORT'], $_SERVER['HTTP_X_FORWARDED_PROTO']);
+    $hs = \OliviaLib\Config::securityHeaders();
+    check(($hs['X-Content-Type-Options'] ?? '') === 'nosniff' && ($hs['X-Frame-Options'] ?? '') === 'DENY' && ($hs['Referrer-Policy'] ?? '') === 'same-origin' && isset($hs['Permissions-Policy']) && !isset($hs['X-XSS-Protection']), 'SEC-320 securityHeaders() traz nosniff, DENY, Referrer-Policy e Permissions-Policy, sem X-XSS-Protection');
+    check(!isset($hs['Strict-Transport-Security']), 'SEC-320 sem HSTS em requisição HTTP');
+    $_SERVER['HTTPS'] = 'on';
+    check((\OliviaLib\Config::securityHeaders()['Strict-Transport-Security'] ?? '') === 'max-age=31536000', 'SEC-320 HSTS em requisição HTTPS');
+    $_SERVER = $servidorAntes;
+
+    // ---------- SEC-321: Download ----------
+    grupo('SEC-321');
+    $intervalos = [
+        'bytes=-5' => [5, 9], 'bytes=0-4' => [0, 4], 'bytes=5-' => [5, 9], 'bytes=3-999' => [3, 9],
+        'bytes=-999999999999999999999' => [0, 9], 'bytes=100-' => false, 'bytes=10-' => false, 'bytes=-0' => false,
+        'bytes=0-1,3-4' => null, 'bytes=4-2' => null, 'items=0-1' => null, 'bytes=-' => null, 'bytes=a-b' => null,
+        'Bytes=0-4' => [0, 4], 'bytes = 0-4' => null, 'bytes=0 - 4' => null, "bytes=0-4\n" => null,
+        'bytes=99999999999999999999-99999999999999999998' => null, 'bytes=99999999999999999998-99999999999999999999' => false,
+    ];
+    $intervalosOk = true;
+    foreach ($intervalos as $cabecalho => $esperado) {
+        $intervalosOk = $intervalosOk && \OliviaDownload\Download::parseRange($cabecalho, 10) === $esperado;
+    }
+    check($intervalosOk && \OliviaDownload\Download::parseRange(null, 10) === null && \OliviaDownload\Download::parseRange('bytes=0-', 0) === false, 'SEC-321 parseRange: sufixo, aberto, fechado, 416 e ignorados (múltiplos, invertido, unidade, espaços internos e sintaxe inválidas; invertido com números enormes não vira 416)');
+    $etagTeste = '"abc"';
+    check(\OliviaDownload\Download::rangeApplies('GET', null, $etagTeste) && \OliviaDownload\Download::rangeApplies('GET', '"abc"', $etagTeste)
+        && !\OliviaDownload\Download::rangeApplies('HEAD', null, $etagTeste) && !\OliviaDownload\Download::rangeApplies('POST', null, $etagTeste)
+        && !\OliviaDownload\Download::rangeApplies('GET', 'W/"abc"', $etagTeste) && !\OliviaDownload\Download::rangeApplies('GET', '"outro"', $etagTeste)
+        && !\OliviaDownload\Download::rangeApplies('GET', 'Sat, 21 Nov 2026 10:00:00 GMT', $etagTeste), 'SEC-321 Range só em GET; If-Range só vale com o ETag forte atual (data, ETag fraco ou diferente ignoram o Range)');
+    $disp = \OliviaDownload\Download::contentDisposition('attachment', 'a"; filename=evil.html');
+    check($disp === "attachment; filename=\"a__ filename=evil.html\"; filename*=UTF-8''a%22%3B%20filename%3Devil.html", 'SEC-321 Content-Disposition: aspas e ponto e vírgula do nome não injetam parâmetro');
+    $disp = \OliviaDownload\Download::contentDisposition('inline', "rel\r\nX-Injetado: 1\\..\\x/relatório.pdf");
+    check(strpbrk($disp, "\r\n\\") === false && strpos($disp, 'inline; filename="relX-Injetado: 1_.._x_relat_rio.pdf"') === 0 && str_ends_with($disp, "filename*=UTF-8''relX-Injetado%3A%201_.._x_relat%C3%B3rio.pdf"), 'SEC-321 Content-Disposition sem CR/LF, barras nem não-ASCII no filename, com filename* RFC 5987');
+    check(\OliviaDownload\Download::contentDisposition('attachment', "\xff\x00") === "attachment; filename=\"_\"; filename*=UTF-8''_" && \OliviaDownload\Download::contentDisposition('attachment', '..') === "attachment; filename=\"download\"; filename*=UTF-8''download", 'SEC-321 Content-Disposition com UTF-8 inválido ou nome vazio usa nome seguro');
+    check(seguro(fn () => \OliviaDownload\Download::contentDisposition('form-data', 'x')) === false, 'SEC-321 Content-Disposition só aceita attachment ou inline');
+    $baseDl = $tmp . '/dl-base';
+    mkdir($baseDl . '/sub', 0700, true);
+    file_put_contents($baseDl . '/sub/a.txt', 'A');
+    file_put_contents($tmp . '/dl-fora.txt', 'FORA');
+    @symlink($tmp . '/dl-fora.txt', $baseDl . '/link.txt');
+    $dl = new \OliviaDownload\Download($baseDl);
+    $erroDl = function (string $arquivo) use ($dl): string {
+        try {
+            $dl->resolve($arquivo);
+            return 'ACEITO';
+        } catch (\RuntimeException $e) {
+            return $e->getMessage();
+        }
+    };
+    check($dl->resolve('sub/a.txt') === realpath($baseDl . '/sub/a.txt') && $dl->resolve($baseDl . '/sub/../sub/a.txt') === realpath($baseDl . '/sub/a.txt'), 'SEC-321 resolve() aceita caminho relativo à base e absoluto dentro dela');
+    $recusas = [$erroDl('../dl-fora.txt'), $erroDl($tmp . '/dl-fora.txt'), $erroDl('/etc/passwd'), $erroDl('link.txt'), $erroDl('sub'), $erroDl("sub/a.txt\0.jpg"), $erroDl('')];
+    check(!in_array('ACEITO', $recusas, true) && is_link($baseDl . '/link.txt'), 'SEC-321 resolve() recusa "..", absoluto fora da base, symlink para fora, diretório, NUL e vazio');
+    check(array_filter($recusas, fn ($m) => strpos($m, '/') !== false) === [], 'SEC-321 mensagens de erro do Download não expõem caminhos');
+    check(strpos($erroDl('/etc/passwd'), 'fora do diretório base') !== false, 'SEC-321 arquivo existente fora da base falha com mensagem própria');
+    check(seguro(fn () => (new \OliviaDownload\Download($tmp . '/nao-existe'))->resolve('a.txt')) === false, 'SEC-321 base inexistente falha fechado');
+    if (DIRECTORY_SEPARATOR === '/') {
+        // "\\" é caractere de nome no Linux: a base "bs\\" não pode virar "bs" (diretório vizinho).
+        $baseBarra = $tmp . '/bs\\';
+        mkdir($baseBarra, 0700);
+        mkdir($tmp . '/bs', 0700);
+        file_put_contents($baseBarra . '/dentro.txt', 'D');
+        file_put_contents($tmp . '/bs/vizinho.txt', 'V');
+        $dlBarra = new \OliviaDownload\Download($baseBarra);
+        $vizinho = seguro(fn () => $dlBarra->resolve($tmp . '/bs/vizinho.txt'));
+        check(seguro(fn () => $dlBarra->resolve('dentro.txt')) === realpath($baseBarra . '/dentro.txt') && $vizinho === false, 'SEC-321 base com barra invertida no nome aceita seus arquivos e recusa o diretório vizinho');
+        putenv('OLIVIA_UPLOAD_DIR=' . $baseBarra);
+        $dlPadrao = new \OliviaDownload\Download();
+        check(seguro(fn () => $dlPadrao->resolve('dentro.txt')) === realpath($baseBarra . '/dentro.txt')
+            && seguro(fn () => $dlPadrao->resolve($tmp . '/bs/vizinho.txt')) === false, 'SEC-321 OLIVIA_UPLOAD_DIR preserva a barra invertida da base no Linux e mantém a contenção');
+    }
+    putenv('OLIVIA_UPLOAD_DIR=' . $baseDl);
+    check((new \OliviaDownload\Download())->resolve('sub/a.txt') === realpath($baseDl . '/sub/a.txt'), 'SEC-321 base padrão é OLIVIA_UPLOAD_DIR');
+    putenv('OLIVIA_UPLOAD_DIR');
+
+    // ---------- SEC-322: erros 403/405/500 ----------
+    grupo('SEC-322');
+    $csrfEx = new \OliviaRouter\CsrfException();
+    check($csrfEx instanceof \RuntimeException && $csrfEx->getStatusCode() === 403 && $csrfEx->getCode() === 403 && $csrfEx->getMessage() === 'CSRF token inválido ou ausente.', 'SEC-322 CsrfException dedicada (403), compatível com RuntimeException');
+    $mna = new \OliviaRouter\MethodNotAllowedException("po\r\nst", ['put', 'GET', 'PUT']);
+    check($mna->getAllowedMethods() === ['GET', 'PUT'] && $mna->getStatusCode() === 405 && $mna->getMessage() === 'Método POST não permitido; use GET, PUT.', 'SEC-322 MethodNotAllowedException normaliza, ordena e deduplica os métodos; mensagem sem CR/LF');
+    $r405 = new \OliviaRouter\Router(new \OliviaRouter\RouterConfig('OliviaTest', 'Controller', 'Middleware', '', false, ''));
+    $r405->get('/x', 'ProbeController#show');
+    $r405->put('/x', 'ProbeController#show');
+    $r405->post('/u/{id}', 'ProbeController#save');
+    $capturar = function (string $metodo, string $uri) use ($r405) {
+        try {
+            $r405->execute(new \OliviaRouter\Request($metodo, $uri));
+            return null;
+        } catch (\OliviaRouter\MethodNotAllowedException $e) {
+            return $e->getAllowedMethods();
+        }
+    };
+    $chamadas405 = \OliviaTest\Controller\ProbeController::$calls;
+    check($capturar('POST', '/x') === ['GET', 'HEAD', 'PUT'] && $GLOBALS['OLIVIA_ROUTER_404'] === false, 'SEC-322 caminho existente com outro método lança 405 com os métodos da rota e não marca 404');
+    check($capturar('GET', '/u/5?a=1') === ['POST'] && $capturar('OPTIONS', '/x') === ['GET', 'HEAD', 'PUT'], 'SEC-322 405 também em rota com parâmetro e para OPTIONS; caminho com GET anuncia HEAD no Allow');
+    check($capturar('DELETE', '/nada') === null && $GLOBALS['OLIVIA_ROUTER_404'] === true, 'SEC-322 caminho inexistente continua 404 (sem 405)');
+    check(\OliviaTest\Controller\ProbeController::$calls === $chamadas405, 'SEC-322 detecção do 405 não chama nenhum handler');
+    ob_start();
+    echo 'ANTES|';
+    $headX = $capturar('HEAD', '/x');
+    $saidaHead = (string) ob_get_clean();
+    check($headX === null && end(\OliviaTest\Controller\ProbeController::$calls) === ['show', null] && $GLOBALS['OLIVIA_ROUTER_404'] === false && $saidaHead === 'ANTES|', 'SEC-322 HEAD usa a rota GET do caminho, sem corpo e sem marcar 404');
+    check($capturar('HEAD', '/u/5') === ['POST'], 'SEC-322 HEAD em caminho só com POST responde 405 com Allow: POST');
+    check(\OliviaLib\ErrorHandler::statusFor(new \OliviaRouter\CsrfException()) === 403 && \OliviaLib\ErrorHandler::statusFor($mna) === 405 && \OliviaLib\ErrorHandler::statusFor(new \RuntimeException('x')) === 500 && \OliviaLib\ErrorHandler::statusFor(new \Error('x')) === 500, 'SEC-322 ErrorHandler::statusFor: CSRF 403, método 405, resto 500');
+    $renderizar = function (int $status, \Throwable $e): string {
+        ob_start();
+        \OliviaLib\ErrorHandler::render($status, $e);
+        return (string) ob_get_clean();
+    };
+    $segredo = new \LogicException('<b>segredo</b> /srv/conf');
+    $html500 = $renderizar(500, $segredo);
+    check(strpos($html500, '<p class="error-code">500</p>') !== false && strpos($html500, 'Erro interno') !== false && strpos($html500, 'segredo') === false && strpos($html500, 'LogicException') === false && strpos($html500, '<pre class="error-detail"') === false, 'SEC-322 página 500 genérica, sem mensagem, classe nem trace com APP_DEBUG desligado');
+    putenv('APP_DEBUG=true');
+    $htmlDebug = $renderizar(500, $segredo);
+    putenv('APP_DEBUG');
+    check(strpos($htmlDebug, 'LogicException: &lt;b&gt;segredo&lt;/b&gt; /srv/conf') !== false && strpos($htmlDebug, '<b>segredo') === false && strpos($htmlDebug, '#0 ') !== false, 'SEC-322 com APP_DEBUG=true o detalhe aparece escapado, com trace');
+    check(strpos($renderizar(403, new \OliviaRouter\CsrfException()), '<p class="error-code">403</p>') !== false && strpos($renderizar(405, $mna), 'Método não permitido') !== false, 'SEC-322 página de erro mostra o código e o título de 403 e 405');
+    $memoriaAntes = ini_get('memory_limit');
+    ini_set('memory_limit', '256M');
+    new \OliviaLib\Config();
+    check(ini_get('memory_limit') === '256M', 'SEC-322 Config não altera memory_limit (vale o do php.ini/ambiente)');
+    ini_set('memory_limit', (string) $memoriaAntes);
 
     // ---------- QA-314: provas HTTP reais (php -S) ----------
     grupo('QA-314 HTTP');
@@ -1732,6 +2154,30 @@ namespace {
             ]);
             return true;
         }
+        if (strpos($caminho, "/__app/") === 0) {
+            // Espelha o index.php (ErrorHandler antes do Config) com rotas que falham de propósito.
+            if (isset($_GET["debug"])) {
+                putenv("APP_DEBUG=true");
+            }
+            require __DIR__ . "/ProbeErro.php";
+            $_SERVER["SCRIPT_NAME"] = "/index.php";
+            \OliviaLib\ErrorHandler::register();
+            new \OliviaLib\Config();
+            $rotas = new \OliviaRouter\Router();
+            $rotas->post("/__app/salvar", "ProbeErro#salvar");
+            $rotas->get("/__app/quebra", "ProbeErro#quebra");
+            $rotas->get("/__app/fatal", "ProbeErro#fatal");
+            $rotas->execute($_SERVER);
+            return true;
+        }
+        if ($caminho === "/__download") {
+            try {
+                (new \OliviaDownload\Download())->now((string) ($_GET["f"] ?? ""), isset($_GET["n"]) ? (string) $_GET["n"] : null);
+            } catch (\RuntimeException $e) {
+                echo "ERRO:" . $e->getMessage();
+            }
+            return true;
+        }
         if ($caminho === "/__request_post") {
             session_start();
             $_SESSION["UUID"] = getenv("PROBE_TOKEN");
@@ -1747,6 +2193,17 @@ namespace {
         require $raiz . "/index.php";
         return true;
     ');
+    file_put_contents($www . '/ProbeErro.php', '<?php
+        namespace OliviaApp\\Controller;
+        class ProbeErro
+        {
+            public function salvar() { echo "SALVO"; }
+            public function quebra() { echo "<p>PARCIAL-ANTES-DO-ERRO</p>"; throw new \\LogicException("segredo-interno <script>alert(1)</script> /srv/app/conf"); }
+            public function fatal() { echo "PARCIAL-ANTES-DO-FATAL"; require __DIR__ . "/fatal_a.php"; require __DIR__ . "/fatal_b.php"; }
+        }
+    ');
+    file_put_contents($www . '/fatal_a.php', '<?php function olivia_fatal_probe() {}');
+    file_put_contents($www . '/fatal_b.php', '<?php function olivia_fatal_probe() {}');
     [$srv, $porta, $logHttp] = servidorHttp($www . '/roteador.php', ['session.save_path' => $tmp, 'display_errors' => 'stderr', 'log_errors' => '0'], [
         'OLIVIA_UPLOAD_DIR' => $uploadHttp,
         'OLIVIA_TRUSTED_PROXIES' => '127.0.0.1',
@@ -1794,9 +2251,138 @@ namespace {
     $upHtml = json_decode(requisicaoHttp($porta, 'POST', '/__upload', ['Content-Type: multipart/form-data; boundary=' . $limite], $multipartHtml)['body'], true);
     check(is_array($upHtml) && $upHtml['valido'] === false && count(glob($uploadHttp . '/http/*') ?: []) === 1, 'SEC-304 upload multipart real com PHP disfarçado de PNG é recusado e nada é gravado');
 
+    // SEC-321: Download por HTTP real (base = OLIVIA_UPLOAD_DIR do servidor)
+    @mkdir($uploadHttp . '/dl', 0700, true);
+    file_put_contents($uploadHttp . '/dl/dez.txt', '0123456789');
+    file_put_contents($tmp . '/fora-http.txt', 'SEGREDO-FORA');
+    @symlink($tmp . '/fora-http.txt', $uploadHttp . '/dl/link.txt');
+    $baixar = fn (string $arquivo, array $hs = [], ?string $nome = null) => requisicaoHttp($porta, 'GET', '/__download?' . http_build_query(array_filter(['f' => $arquivo, 'n' => $nome], fn ($v) => $v !== null)), $hs);
+    foreach (['/etc/passwd' => 'root:', '../../fora-http.txt' => 'SEGREDO', $tmp . '/fora-http.txt' => 'SEGREDO', 'dl/link.txt' => 'SEGREDO'] as $arquivo => $marca) {
+        $r = $baixar($arquivo);
+        check($r['status'] === 404 && strpos($r['body'], $marca) === false && strpos($r['body'], 'ERRO:') === 0 && strpos($r['body'], '/') === false && ($r['headers']['x-content-type-options'] ?? []) === ['nosniff'], 'SEC-321 Download recusa ' . (strpos($arquivo, $tmp) === 0 ? 'absoluto fora da base' : $arquivo) . ' com 404 e nosniff, sem conteúdo nem caminho na mensagem, sem o Config (HTTP real)');
+    }
+    $r = $baixar($uploadHttp . '/dl/dez.txt');
+    check($r['status'] === 200 && $r['body'] === '0123456789' && ($r['headers']['x-content-type-options'] ?? []) === ['nosniff'] && ($r['headers']['accept-ranges'] ?? []) === ['bytes'] && ($r['headers']['content-length'] ?? []) === ['10'] && !isset($r['headers']['content-range']), 'SEC-321 Download serve arquivo dentro da base com 200, nosniff e Accept-Ranges (HTTP real)');
+    $r = $baixar('dl/dez.txt', [], "a\"; filename=evil.html");
+    check($r['status'] === 200 && ($r['headers']['content-disposition'] ?? []) === ["attachment; filename=\"a__ filename=evil.html\"; filename*=UTF-8''a%22%3B%20filename%3Devil.html"], 'SEC-321 nome com aspas não injeta parâmetro no Content-Disposition (HTTP real)');
+    $r = $baixar('dl/dez.txt', [], "x\r\nX-Injetado: 1");
+    check($r['status'] === 200 && !isset($r['headers']['x-injetado']) && count($r['headers']['content-disposition'] ?? []) === 1, 'SEC-321 nome com CR/LF não injeta header (HTTP real)');
+    $casosRange = [
+        'bytes=-5' => [206, '56789', 'bytes 5-9/10'],
+        'bytes=0-4' => [206, '01234', 'bytes 0-4/10'],
+        'bytes=5-' => [206, '56789', 'bytes 5-9/10'],
+        'bytes=8-999' => [206, '89', 'bytes 8-9/10'],
+        'bytes=100-' => [416, '', 'bytes */10'],
+        'bytes=-0' => [416, '', 'bytes */10'],
+        'bytes=0-1,3-4' => [200, '0123456789', null],
+        'bytes=4-2' => [200, '0123456789', null],
+        'items=0-1' => [200, '0123456789', null],
+        'bytes = 0-4' => [200, '0123456789', null],
+        'bytes=99999999999999999999-99999999999999999998' => [200, '0123456789', null],
+    ];
+    foreach ($casosRange as $cabecalho => [$statusEsperado, $corpoEsperado, $contentRange]) {
+        $r = $baixar('dl/dez.txt', ['Range: ' . $cabecalho]);
+        check($r['status'] === $statusEsperado && $r['body'] === $corpoEsperado && ($r['headers']['content-range'] ?? [null]) === [$contentRange] && ($r['headers']['content-length'] ?? []) === [(string) strlen($corpoEsperado)] && ($r['headers']['x-content-type-options'] ?? []) === ['nosniff'], "SEC-321 Range {$cabecalho} responde {$statusEsperado}" . ($contentRange !== null ? " com Content-Range {$contentRange}" : ' com o arquivo inteiro') . ' (HTTP real)');
+    }
+
+    $r = requisicaoHttp($porta, 'HEAD', '/__download?f=dl/dez.txt', ['Range: bytes=0-4']);
+    check($r['status'] === 200 && $r['body'] === '' && !isset($r['headers']['content-range']) && ($r['headers']['content-length'] ?? []) === ['10'], 'SEC-321 HEAD com Range responde 200 sem Content-Range e sem corpo (HTTP real)');
+    $etagHttp = $baixar('dl/dez.txt')['headers']['etag'][0] ?? '';
+    check($etagHttp === '"' . hash('sha256', '0123456789') . '"', 'SEC-321 Download envia ETag forte calculado sobre os bytes (HTTP real)');
+    $casosIfRange = [
+        $etagHttp => [206, '01234'],
+        '"outro"' => [200, '0123456789'],
+        'W/' . $etagHttp => [200, '0123456789'],
+        gmdate('D, d M Y H:i:s') . ' GMT' => [200, '0123456789'],
+    ];
+    foreach ($casosIfRange as $validador => [$statusEsperado, $corpoEsperado]) {
+        $r = $baixar('dl/dez.txt', ['Range: bytes=0-4', 'If-Range: ' . $validador]);
+        check($r['status'] === $statusEsperado && $r['body'] === $corpoEsperado, 'SEC-321 If-Range ' . ($validador === $etagHttp ? 'com o ETag atual responde 206' : 'sem validador correspondente responde 200 com o arquivo inteiro') . ' (HTTP real)');
+    }
+
+    $arquivoRetomado = $uploadHttp . '/dl/dez.txt';
+    $mtimeOriginal = filemtime($arquivoRetomado);
+    $inodeOriginal = fileinode($arquivoRetomado);
+    file_put_contents($arquivoRetomado, 'ABCDEFGHIJ');
+    touch($arquivoRetomado, $mtimeOriginal);
+    clearstatcache(true, $arquivoRetomado);
+    $r = $baixar('dl/dez.txt', ['Range: bytes=0-4', 'If-Range: ' . $etagHttp]);
+    check(filesize($arquivoRetomado) === 10 && filemtime($arquivoRetomado) === $mtimeOriginal && fileinode($arquivoRetomado) === $inodeOriginal
+        && $r['status'] === 200 && $r['body'] === 'ABCDEFGHIJ' && !isset($r['headers']['content-range'])
+        && ($r['headers']['etag'] ?? []) === ['"' . hash('sha256', 'ABCDEFGHIJ') . '"'], 'SEC-321 If-Range com ETag antigo recebe a versão atual inteira após alteração de conteúdo com tamanho, mtime e inode preservados (HTTP real)');
+
+    // SEC-320: headers de segurança e CSP por nonce em respostas reais (index, erro e texto puro)
+    $nonceDe = function (array $resp): ?string {
+        $cspHttp = $resp['headers']['content-security-policy'] ?? [];
+        return count($cspHttp) === 1 && preg_match("/style-src 'self' 'nonce-([A-Za-z0-9+\\/=]+)'/", $cspHttp[0], $m) === 1 ? $m[1] : null;
+    };
+    $headersBase = fn (array $resp) => ($resp['headers']['x-content-type-options'] ?? []) === ['nosniff']
+        && ($resp['headers']['x-frame-options'] ?? []) === ['DENY']
+        && ($resp['headers']['referrer-policy'] ?? []) === ['same-origin']
+        && count($resp['headers']['permissions-policy'] ?? []) === 1
+        && !isset($resp['headers']['x-powered-by'], $resp['headers']['x-xss-protection'], $resp['headers']['strict-transport-security']);
+    $paginas = [];
+    foreach (['/' => 200, '/error404' => 404] as $pagina => $statusEsperado) {
+        $r = requisicaoHttp($porta, 'GET', $pagina);
+        $n = $nonceDe($r);
+        $paginas[] = $n;
+        check($r['status'] === $statusEsperado && $headersBase($r) && $n !== null, "SEC-320 {$pagina} envia CSP, nosniff, DENY, Referrer-Policy e Permissions-Policy uma única vez, sem HSTS nem X-Powered-By em HTTP (HTTP real)");
+        check($n !== null && substr_count($r['body'], '<style') === 1 && strpos($r['body'], '<style nonce="' . $n . '">') !== false, "SEC-320 {$pagina} renderiza o <style> com o nonce da CSP da resposta (HTTP real)");
+    }
+    check($paginas[0] !== null && $paginas[0] !== $paginas[1], 'SEC-320 nonce muda a cada requisição (HTTP real)');
+    $r = requisicaoHttp($porta, 'GET', '/livez');
+    check($headersBase($r) && $nonceDe($r) !== null, 'SEC-320 /livez também recebe os headers de segurança (HTTP real)');
+    $r = requisicaoHttp($porta, 'GET', '/livez', ['X-Forwarded-Proto: https']);
+    check(($r['headers']['strict-transport-security'] ?? []) === ['max-age=31536000'], 'SEC-320 HSTS só quando proxy confiável envia X-Forwarded-Proto: https (HTTP real)');
+
+    // SEC-322: 403, 405 e 500 por HTTP real, com página, sem detalhes e com log
+    $paginaErro = fn (array $resp, int $codigo, string $titulo) => $resp['status'] === $codigo
+        && strpos($resp['body'], '<p class="error-code">' . $codigo . '</p>') !== false
+        && strpos($resp['body'], $titulo) !== false
+        && strpos($resp['body'], '#0 ') === false
+        && preg_match('/\b\w+(Exception|Error)\b/', $resp['body']) !== 1
+        && str_starts_with(($resp['headers']['content-type'][0] ?? ''), 'text/html')
+        && $nonceDe($resp) !== null && strpos($resp['body'], '<style nonce="' . $nonceDe($resp) . '">') !== false;
+    $r = requisicaoHttp($porta, 'POST', '/__app/salvar', ['Content-Type: application/x-www-form-urlencoded'], http_build_query(['_token' => 'forjado']));
+    check($paginaErro($r, 403, 'Acesso negado') && strpos($r['body'], 'SALVO') === false && strpos($r['body'], 'CSRF token') === false, 'SEC-322 CSRF inválido responde 403 com página de erro, CSP e sem detalhe (HTTP real)');
+    $r = requisicaoHttp($porta, 'POST', '/__app/salvar', ['Accept: application/json']);
+    $json403 = json_decode($r['body'], true);
+    check($r['status'] === 403 && str_starts_with(($r['headers']['content-type'][0] ?? ''), 'application/json') && is_array($json403) && $json403['status'] === 403 && $json403['error'] === 'Acesso negado' && !isset($json403['debug']), 'SEC-322 CSRF inválido com Accept JSON responde 403 em JSON (HTTP real)');
+    $r = requisicaoHttp($porta, 'POST', '/');
+    check($paginaErro($r, 405, 'Método não permitido') && ($r['headers']['allow'] ?? []) === ['GET, HEAD'] && !isset($r['headers']['location']), 'SEC-322 POST / no index.php real responde 405 com Allow: GET, HEAD e página (HTTP real)');
+    $r = requisicaoHttp($porta, 'PUT', '/livez');
+    check($r['status'] === 405 && ($r['headers']['allow'] ?? []) === ['GET, HEAD'] && $r['body'] !== '', 'SEC-322 PUT /livez responde 405 com Allow: GET, HEAD (HTTP real)');
+    // ISS-OLIVIA-SEC-322-HEAD: HEAD usa a rota GET, sem corpo; /error404 não redireciona para si mesma
+    $esperadoHead = ['/' => 200, '/livez' => 200, '/error404' => 404];
+    foreach ($esperadoHead as $caminhoHead => $statusHead) {
+        $r = requisicaoHttp($porta, 'HEAD', $caminhoHead);
+        check($r['status'] === $statusHead && $r['body'] === '' && !isset($r['headers']['location']) && ($r['headers']['x-content-type-options'] ?? []) === ['nosniff'], "SEC-322 HEAD {$caminhoHead} responde {$statusHead} sem corpo nem redirect (HTTP real)");
+    }
+    $r = requisicaoHttp($porta, 'HEAD', '/rota-que-nao-existe');
+    check($r['status'] === 302 && ($r['headers']['location'] ?? []) === ['/error404'] && requisicaoHttp($porta, 'HEAD', '/error404')['status'] === 404, 'SEC-322 HEAD em caminho inexistente vai para /error404, que responde 404 (sem loop) (HTTP real)');
+    $r = requisicaoHttp($porta, 'HEAD', '/__app/salvar');
+    check($r['status'] === 405 && ($r['headers']['allow'] ?? []) === ['POST'] && $r['body'] === '', 'SEC-322 HEAD em rota só POST responde 405 com Allow: POST e sem corpo (HTTP real)');
+    $r = requisicaoHttp($porta, 'HEAD', '/__app/quebra');
+    check($r['status'] === 500 && $r['body'] === '', 'SEC-322 HEAD em rota que falha responde 500 sem corpo (HTTP real)');
+    $r = requisicaoHttp($porta, 'DELETE', '/__app/salvar');
+    check($r['status'] === 405 && ($r['headers']['allow'] ?? []) === ['POST'], 'SEC-322 DELETE em rota POST responde 405 com Allow: POST, antes do CSRF (HTTP real)');
+    $r = requisicaoHttp($porta, 'POST', '/rota-que-nao-existe');
+    check($r['status'] === 302 && ($r['headers']['location'] ?? []) === ['/error404'], 'SEC-322 caminho inexistente continua no fluxo de 404, sem virar 405 (HTTP real)');
+    $logAntes = strlen((string) @file_get_contents($logHttp));
+    $r = requisicaoHttp($porta, 'GET', '/__app/quebra');
+    $logQuebra = substr((string) @file_get_contents($logHttp), $logAntes);
+    check($paginaErro($r, 500, 'Erro interno') && strpos($r['body'], 'segredo-interno') === false && strpos($r['body'], 'PARCIAL-ANTES-DO-ERRO') === false && strpos($r['body'], '/srv/app') === false, 'SEC-322 exceção não tratada responde 500 com página genérica, sem saída parcial nem detalhe (HTTP real)');
+    check(strpos($logQuebra, 'OliviaLib: exceção não tratada LogicException: segredo-interno') !== false && strpos($logQuebra, '[GET /__app/quebra]') !== false && strpos($logQuebra, '#0 ') !== false, 'SEC-322 exceção do 500 registrada no log com rota e trace (HTTP real)');
+    $r = requisicaoHttp($porta, 'GET', '/__app/quebra?debug=1');
+    check($r['status'] === 500 && strpos($r['body'], 'LogicException: segredo-interno &lt;script&gt;alert(1)&lt;/script&gt;') !== false && strpos($r['body'], '<script>alert(1)') === false && strpos($r['body'], '#0 ') !== false, 'SEC-322 com APP_DEBUG=true o 500 mostra classe, mensagem escapada e trace (HTTP real)');
+    $r = requisicaoHttp($porta, 'GET', '/__app/fatal');
+    check($r['status'] === 500 && strpos($r['body'], '<p class="error-code">500</p>') !== false && strpos($r['body'], 'PARCIAL-ANTES-DO-FATAL') === false && strpos($r['body'], 'olivia_fatal_probe') === false, 'SEC-322 erro fatal responde 500 com a página genérica (HTTP real)');
+
     proc_terminate($srv);
     proc_close($srv);
     $logServidor = (string) @file_get_contents($logHttp);
+    // O fatal "Cannot redeclare olivia_fatal_probe()" é provocado pelo teste do SEC-322; o resto do log deve estar limpo.
+    $logServidor = implode("\n", array_filter(explode("\n", $logServidor), fn ($linha) => strpos($linha, 'olivia_fatal_probe') === false));
     check(preg_match('/(Warning|Notice|Deprecated|Fatal error|Uncaught)/i', $logServidor) !== 1, 'QA-314 servidor HTTP sem warnings, depreciações ou erros no log');
 
     // ---------- Email ----------
@@ -1824,7 +2410,9 @@ namespace {
     restaurarAmbiente($ambienteOriginal);
     $limpar = function (string $dir) use (&$limpar) {
         // Links simbólicos são removidos sem seguir o alvo (os testes de upload criam links para dentro e fora da base)
-        foreach (array_merge(glob($dir . '/*') ?: [], glob($dir . '/.[!.]*') ?: []) as $f) {
+        // scandir em vez de glob: nomes com "\\", "*" ou "[" (ex.: base "bs\\" do SEC-321) não são padrões
+        foreach (array_diff(scandir($dir) ?: [], ['.', '..']) as $nome) {
+            $f = $dir . '/' . $nome;
             if (is_link($f) || !is_dir($f)) {
                 @unlink($f);
             } else {

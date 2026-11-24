@@ -97,8 +97,8 @@ abstract class ViewModelErro extends CommandController
         <head>
             <meta charset="utf-8">
             <meta name="viewport" content="width=device-width, initial-scale=1">
-            <title>Olívia - Framework</title>
-            <style>
+            <title><?= htmlspecialchars((string) ($this->getTitlePage() ?? 'Olívia - Framework'), ENT_QUOTES, 'UTF-8') ?></title>
+            <style nonce="<?= htmlspecialchars(\OliviaLib\Config::cspNonce(), ENT_QUOTES, 'UTF-8') ?>">
                 :root {
                     color-scheme: dark;
                     --bg: #0d1321;
@@ -167,6 +167,20 @@ abstract class ViewModelErro extends CommandController
                     line-height: 1.6;
                 }
 
+                .error-detail {
+                    margin: 0 0 24px;
+                    padding: 16px;
+                    max-height: 320px;
+                    overflow: auto;
+                    text-align: left;
+                    white-space: pre-wrap;
+                    word-break: break-word;
+                    font-size: 0.8rem;
+                    border-radius: 16px;
+                    background: rgba(0, 0, 0, 0.35);
+                    color: var(--muted);
+                }
+
                 .button-primary {
                     display: inline-block;
                     border-radius: 999px;
@@ -182,7 +196,6 @@ abstract class ViewModelErro extends CommandController
 
     private function body()
     {
-        $this->config();
         echo '<body>';
         $this->content();
         echo '</body></html>';

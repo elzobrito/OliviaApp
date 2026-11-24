@@ -12,7 +12,10 @@ final class ConnectionManager
     /** @var array<string, ConnectionInterface> */
     private static array $pool = [];
 
-    public static function get(array $options): ConnectionInterface
+    /**
+     * $options carrega a senha: #[\SensitiveParameter] a tira dos stack traces.
+     */
+    public static function get(#[\SensitiveParameter] array $options): ConnectionInterface
     {
         $key = self::key($options);
         return self::$pool[$key] ??= new Connection($options);
@@ -34,7 +37,7 @@ final class ConnectionManager
         return count(self::$pool);
     }
 
-    private static function key(array $options): string
+    private static function key(#[\SensitiveParameter] array $options): string
     {
         ksort($options);
         return hash('sha256', serialize($options));
